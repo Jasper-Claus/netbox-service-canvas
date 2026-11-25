@@ -1,0 +1,16 @@
+{% extends 'generic/object.html' %}
+{% load static i18n %}
+
+{% block head %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'netbox_service_canvas/dist/canvas.css' %}">
+{% endblock head %}
+
+{% block content %}
+  {{ editor_config|json_script:"nsc-editor-config" }}
+  <div id="nsc-canvas-root" class="nsc-root" data-config-id="nsc-editor-config">
+    <noscript>{% trans "The canvas editor requires JavaScript." %}</noscript>
+    <div class="nsc-loading text-muted p-4">{% trans "Loading canvas…" %}</div>
+  </div>
+  <script type="module" src="{% static 'netbox_service_canvas/dist/canvas.js' %}"></script>
+{% endblock content %}

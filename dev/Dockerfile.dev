@@ -1,0 +1,11 @@
+# Development image: NetBox 4.5.7 (netbox-docker 4.0.2) + netbox-service-canvas as editable install.
+# The repository is bind-mounted over /opt/netbox-service-canvas at runtime (see docker-compose.override.yml),
+# so code changes are picked up by runserver's autoreload without rebuilding the image.
+ARG NETBOX_IMAGE=docker.io/netboxcommunity/netbox:v4.5.7-4.0.2
+FROM ${NETBOX_IMAGE}
+
+COPY pyproject.toml README.md /opt/netbox-service-canvas/
+COPY netbox_service_canvas /opt/netbox-service-canvas/netbox_service_canvas
+RUN /usr/local/bin/uv pip install --no-deps \
+        --config-settings editable_mode=compat \
+        -e /opt/netbox-service-canvas

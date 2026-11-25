@@ -1,0 +1,34 @@
+# Copy into your netbox-docker checkout (release 4.0.2) next to docker-compose.yml.
+# PLUGIN_SRC must point to the netbox-service-canvas repository on the VM (see dev/README.md).
+services:
+  netbox: &netbox
+    image: netbox-service-canvas-dev:latest
+    build:
+      context: ${PLUGIN_SRC:?set PLUGIN_SRC in .env}
+      dockerfile: dev/Dockerfile.dev
+    ports:
+      - "8000:8080"
+    environment:
+      DEBUG: "true"
+      DB_WAIT_DEBUG: "1"
+    volumes:
+      - ./configuration:/etc/netbox/config:z,ro
+      - netbox-media-files:/opt/netbox/netbox/media:rw
+      - netbox-reports-files:/opt/netbox/netbox/reports:rw
+      - netbox-scripts-files:/opt/netbox/netbox/scripts:rw
+      # Live source: runserver reloads Python changes, DEBUG serves the plugin's static files directly
+      - ${PLUGIN_SRC}:/opt/netbox-service-canvas:z,ro
+    command:
+      - /opt/netbox/docker-entrypoint.sh
+      - /opt/netbox/venv/bin/python
+      - /opt/netbox/netbox/manage.py
+      - runserver
+      - 0.0.0.0:8080
+  netbox-worker:
+    image: netbox-service-canvas-dev:latest
+    volumes:
+      - ./configuration:/etc/netbox/config:z,ro
+      - netbox-media-files:/opt/netbox/netbox/media:rw
+      - netbox-reports-files:/opt/netbox/netbox/reports:rw
+      - netbox-scripts-files:/opt/netbox/netbox/scripts:rw
+      - ${PLUGIN_SRC}:/opt/netbox-service-canvas:z,ro

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netbox-service-canvas"
+version = "0.1.0"
+description = "Interactive canvas for NetBox: which services run where and how they talk to each other."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.12"
+authors = [{ name = "Jasper Claus" }]
+classifiers = [
+    "Framework :: Django",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+]
+dependencies = []
+
+[project.urls]
+Source = "https://github.com/REPLACE_ME/netbox-service-canvas"
+
+[tool.setuptools.packages.find]
+include = ["netbox_service_canvas*"]
+
+[tool.setuptools.package-data]
+netbox_service_canvas = [
+    "templates/**/*.html",
+    "static/**/*",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"

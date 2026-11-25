@@ -1,0 +1,15 @@
+{% load i18n %}
+<div class="dropdown">
+  <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+    <i class="mdi mdi-graph-outline"></i> {% trans "Show on canvas" %}
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    {% for canvas, url in canvas_links %}
+      <li><a class="dropdown-item" href="{{ url }}">{{ canvas.name }}</a></li>
+    {% empty %}
+      <li><span class="dropdown-item-text text-muted">{% trans "Not placed on any canvas yet" %}</span></li>
+      <li><hr class="dropdown-divider"></li>
+      <li><a class="dropdown-item" href="{{ add_url }}">{% trans "Open canvases" %}</a></li>
+    {% endfor %}
+  </ul>
+</div>
