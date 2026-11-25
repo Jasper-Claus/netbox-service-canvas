@@ -230,7 +230,6 @@ See [CONTRIBUTING.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob
 
 - [ ] Auto-fill groups from cluster / site / tag
 - [ ] Services drawn inside their host's container
-- [ ] Live status (e.g. from monitoring) on nodes
 - [ ] Filters and search on the canvas, undo/redo
 - [ ] More UI languages (one dictionary file each, PRs welcome)
 
