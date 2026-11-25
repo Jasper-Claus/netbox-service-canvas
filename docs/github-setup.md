@@ -18,7 +18,7 @@ Release v0.2.0 gibt es schon. Offen ist alles ab Version 0.3.0 (englische Oberfl
       (Sprache in den NetBox-Benutzereinstellungen umschalten).
 - [ ] **8. Wiki hochladen bzw. aktualisieren** ([Abschnitt 6](#6-wiki)). Die Seiten haben jetzt englische Button-Namen.
 - [ ] **9. Repo auf dem Profil anpinnen:** github.com/Jasper-Claus → *Customize your pins*.
-- [ ] **10. Bekannt machen** ([Abschnitt 7](#7-bekannt-machen)), erst wenn `pip install` funktioniert.
+- [ ] **10. Bekannt machen** ([Abschnitt 7](#7-bekannt-machen-fertige-posts)), erst wenn `pip install` funktioniert.
 
 ---
 
@@ -119,74 +119,179 @@ git clone https://github.com/Jasper-Claus/netbox-service-canvas.wiki.git $env:TE
 Copy-Item docs\wiki\*.md $env:TEMP\nsc-wiki\ -Force; git -C $env:TEMP\nsc-wiki add -A; git -C $env:TEMP\nsc-wiki commit -m "Update wiki pages"; git -C $env:TEMP\nsc-wiki push
 ```
 
-## 7. Bekannt machen
+## 7. Bekannt machen: fertige Posts
 
-Fertige Texte für Reddit, X, Slack, Foren und LinkedIn stehen in [announcement.md](announcement.md), dazu eine
-Tabelle, wo es sich lohnt. Hier der Ablauf und die Hashtags.
+Pro Plattform ein Block: **Text kopieren, GIF anhängen, posten.** Die Links und Hashtags stehen schon im Text.
 
-### Ablauf
+- **GIF:** `docs/images/demo.gif` (liegt auch im Repo, falls du am Handy postest:
+  https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/demo.gif)
+- **Zweites Bild** (wo mehrere Bilder gehen): `docs/images/impact.png`
+- **GitHub:** https://github.com/Jasper-Claus/netbox-service-canvas
+- **PyPI:** https://pypi.org/project/netbox-service-canvas/
+
+**Alt-Text fürs GIF** (Mastodon und Bluesky fragen danach, bringt dort auch Reichweite):
+
+```text
+Screen recording of the NetBox Service Canvas editor: a NAS is dragged onto the canvas, "Add missing" adds its services, a connection is drawn from a VM to the NAS, and the impact analysis marks in red and orange everything that fails if the NAS goes down.
+```
+
+### Reihenfolge
 
 | Tag | Wo |
 |---|---|
-| 1 | r/homelab, r/Netbox, X, Bluesky, Mastodon |
-| 2 | NetDev Slack `#netbox`, NetBox GitHub Discussions, LinkedIn |
-| 3–4 | r/selfhosted (Regeln zum Projekt-Tag beachten), Hacker News *Show HN* |
-| danach | selfh.st-Newsletter einreichen, PR an awesome-netbox-Listen, deutsche Foren und Discords |
+| 1 | X, Bluesky, Mastodon, r/homelab, r/Netbox |
+| 2 | NetDev Slack `#netbox`, NetBox GitHub Discussions, Discord |
+| 3–4 | r/selfhosted (Regeln zum Projekt-Tag beachten), Hacker News |
+| danach | selfh.st-Newsletter, PR an awesome-netbox-Listen, deutsche Foren (Text in [announcement.md](announcement.md)) |
 
-- Immer das **GIF direkt hochladen**, nicht nur den Link. Bewegtbild bekommt im Feed deutlich mehr Aufmerksamkeit.
-- Auf X und LinkedIn den **Link in die erste Antwort** bzw. den ersten Kommentar. Posts mit externem Link werden
-  seltener ausgespielt.
-- In der ersten Stunde auf Kommentare antworten. Das hält den Beitrag oben.
-- Mit einer Frage enden, z. B. *"What would you want on the canvas next?"*.
-- Nach ein paar Wochen ein Update posten (neues Feature + GIF). Das zweite Posting erreicht oft mehr Leute als das erste.
+Tipps: GIF immer direkt hochladen, nicht nur verlinken. In der ersten Stunde auf Kommentare antworten.
 
-### Hashtags
+---
 
-**X / Twitter:** X zeigt Posts mit 1–3 Hashtags am besten an. Darum im Post selbst nur die ersten zwei oder drei,
-weitere in die Antwort mit dem Link:
+### X / Twitter
 
-```
+**Post** (mit GIF):
+
+```text
+NetBox knows my racks, IPs and VMs. It never told me which service runs where and what breaks if a box dies.
+
+So I built a plugin: drag hosts in, draw connections, click "Impact analysis". Open source.
+
 #NetBox #homelab #selfhosted
 ```
-```
-#NetDevOps #SysAdmin #OpenSource #Python #Django #ReactJS #DevOps #Networking #NetworkAutomation #IPAM #BuiltWithAI #ClaudeCode #AI
-```
 
-**Mastodon:** Die Suche dort läuft fast nur über Hashtags, also ruhig viele (am besten am Ende, in CamelCase, das
-ist für Screenreader lesbar):
+**Erste Antwort auf den eigenen Post** (X zeigt Posts mit Link seltener an, darum die Links hier):
 
-```
-#NetBox #NetBoxPlugin #Homelab #SelfHosted #SelfHosting #NetDevOps #SysAdmin #Networking #NetworkEngineering
-#NetworkAutomation #IPAM #DCIM #Documentation #InfrastructureAsCode #OpenSource #FOSS #Python #Django #React
-#Proxmox #TrueNAS #DevOps #ITOps #BuiltWithAI #ClaudeCode
-```
+```text
+pip install netbox-service-canvas
 
-**Bluesky:** Hashtags funktionieren, außerdem gibt es Feeds zu Homelab und Self-Hosting, die nach Stichworten
-filtern ("homelab", "selfhosted" im Text helfen):
+GitHub: https://github.com/Jasper-Claus/netbox-service-canvas
+PyPI: https://pypi.org/project/netbox-service-canvas/
 
-```
-#NetBox #homelab #selfhosted #NetDevOps #sysadmin #networking #opensource #python #BuiltWithAI
+#NetDevOps #SysAdmin #OpenSource #Python #BuiltWithAI
 ```
 
-**LinkedIn:** 3–5 Hashtags reichen, mehr wirkt dort schnell wie Spam:
+---
 
+### Bluesky
+
+**Post** (mit GIF + Alt-Text, max. 300 Zeichen):
+
+```text
+NetBox knows my racks, IPs and VMs, but not which service runs where. So I built a plugin: drag hosts in, draw connections, see what breaks if a box dies.
+
+pip install netbox-service-canvas
+github.com/Jasper-Claus/netbox-service-canvas
+
+#NetBox #homelab #selfhosted #opensource
 ```
-#NetBox #NetworkAutomation #NetDevOps #OpenSource #AI
+
+**Antwort:**
+
+```text
+On PyPI: pypi.org/project/netbox-service-canvas
+
+Built entirely with AI (Claude Code), tested in my homelab. Feedback welcome!
+
+#NetDevOps #sysadmin #networking #python #BuiltWithAI
 ```
 
-**Instagram / Threads** (falls gewünscht; GIF als Video hochladen):
+---
 
+### Mastodon
+
+**Post** (mit GIF + Alt-Text, max. 500 Zeichen; auf Mastodon läuft die Suche über Hashtags, darum viele):
+
+```text
+NetBox knows my racks, IPs and VMs, but never told me which service runs where and what breaks if a box dies. So I built a plugin for it:
+
+🗺️ drag hosts in, draw connections
+⚡ impact analysis: what fails if this host goes down
+🖨️ export as PNG, SVG or A4 PDF
+
+pip install netbox-service-canvas
+https://github.com/Jasper-Claus/netbox-service-canvas
+https://pypi.org/project/netbox-service-canvas/
+
+#NetBox #Homelab #SelfHosted #NetDevOps #SysAdmin #Networking #IPAM #OpenSource #FOSS #Python #Proxmox
 ```
-#homelab #homelabsetup #selfhosted #sysadmin #networkengineer #networking #devops #opensource #python #coding
-#programming #serverroom #proxmox #truenas #techsetup #itinfrastructure #ai #aicoding #buildinpublic
+
+---
+
+### Reddit: r/homelab, r/Netbox, r/selfhosted
+
+Als **Bild-/Video-Post** mit dem GIF anlegen, Text in den Body (oder als ersten Kommentar, wenn der Sub nur Medien
+erlaubt). Reddit nutzt keine Hashtags. Bei r/homelab die Flair *Projects* bzw. *Tutorial/Projects* wählen.
+
+**Titel:**
+
+```text
+NetBox never showed me which service runs where and what breaks if a box dies, so I built a plugin for it
 ```
 
-**Reddit und Hacker News:** keine Hashtags. Dort zählen ein klarer Titel und das GIF.
+**Text:**
 
-### Weitere Stellen
+```text
+NetBox is the source of truth for my whole homelab, but I always missed the service layer: Grafana pulling from Prometheus, Paperless writing to Postgres, the NAS everything backs up to.
 
-- **GitHub-Profil-README:** einen Satz und das GIF ergänzen.
-- **dev.to oder Medium:** ein kurzer Artikel "How I built a NetBox plugin entirely with AI" (Tags: `netbox`,
-  `homelab`, `python`, `ai`). Solche Erfahrungsberichte werden gerne geteilt und verlinken dauerhaft aufs Repo.
-- **YouTube Shorts / TikTok:** das GIF als 25-Sekunden-Clip mit Text-Overlay ("What breaks if my NAS dies?").
-- **Homelab-YouTuber und Newsletter** (z. B. selfh.st, Homelab-Discords) kurz anschreiben, mit Link und GIF.
+So I built NetBox Service Canvas, an interactive canvas inside NetBox:
+
+- Drag devices, VMs, services and applications onto a canvas
+- Drawing a line creates a real NetBox object (protocol, port, data, hops)
+- Impact analysis: click a host and see everything that breaks if it goes down, including VMs on a hypervisor
+- Sticky notes, groups, auto layout, autosave
+- Export as PNG, SVG or print-ready A4 PDF
+- English and German UI, respects NetBox permissions, works with netbox-branching
+
+Install: pip install netbox-service-canvas (NetBox 4.5.x, Apache-2.0)
+
+GitHub: https://github.com/Jasper-Claus/netbox-service-canvas
+PyPI: https://pypi.org/project/netbox-service-canvas/
+
+Full disclosure: the code was written entirely by AI (Claude Code). I described what I wanted, tested it in my homelab and gave feedback. Curious what you think, and what you'd want on the canvas next!
+```
+
+---
+
+### Hacker News (Show HN)
+
+Unter https://news.ycombinator.com/submit. Werktags 15–17 Uhr deutscher Zeit. Kein GIF möglich, das GIF ist im
+README oben.
+
+**Title:**
+
+```text
+Show HN: NetBox Service Canvas – see which service runs where and what breaks
+```
+
+**URL:** `https://github.com/Jasper-Claus/netbox-service-canvas`
+
+**Erster Kommentar** (direkt nach dem Posten selbst schreiben):
+
+```text
+I run my homelab out of NetBox, but it never answered "which service runs on which box, and what breaks if it dies?". This plugin adds a canvas where hosts, services and applications are real NetBox objects, every line is a stored connection (protocol, port, hops), and an impact analysis follows hypervisor -> VMs -> services -> apps.
+
+Django + React Flow, no external assets, pip install netbox-service-canvas.
+
+The code was written entirely by Claude Code; I acted as product owner and tester. Happy to answer questions about that workflow too.
+```
+
+---
+
+### NetDev Slack `#netbox` / Discord / GitHub Discussions
+
+Einladung zum Slack über https://netdev.chat. GIF anhängen.
+
+```text
+Hi all! I'd like to share a plugin I've been using in my homelab: netbox-service-canvas.
+
+It adds an interactive canvas that shows which services run on which devices/VMs and how they talk. Edges are real data (ServiceConnection with protocol, port and hops), there's an Application model to group services, an impact analysis ("what breaks if this host fails?") and an A4 PDF export.
+
+NetBox 4.5.x, change-logged models, works with netbox-branching, no external assets.
+pip install netbox-service-canvas
+
+GitHub: https://github.com/Jasper-Claus/netbox-service-canvas
+PyPI: https://pypi.org/project/netbox-service-canvas/
+
+Full disclosure: written entirely by AI (Claude Code). Reviews from experienced plugin devs are very welcome!
+```
