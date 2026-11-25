@@ -1,0 +1,33 @@
+name: 🐛 Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report a bug! 🙏
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: NetBox version, plugin version, install method (netbox-docker / plain)
+      placeholder: NetBox 4.5.7, netbox-service-canvas 0.2.0, netbox-docker 4.0.2
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / browser console
+      description: NetBox logs (`docker compose logs netbox`) and/or red lines from the browser console (F12)
+      render: text
+  - type: textarea
+    id: plugins
+    attributes:
+      label: Other plugins
+      description: Content of your PLUGINS list (e.g. netbox-branching, topology-views)

@@ -905,3 +905,50 @@
   --xy-edge-label-color: #1d273b;
   --xy-edge-stroke: #667382;
 }
+
+/* Help texts */
+.nsc-root .nsc-type-hint {
+  margin-bottom: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--nsc-muted);
+}
+.nsc-root .nsc-sidebar-foot-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nsc-root .nsc-help-toggle {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--nsc-muted);
+  font-size: 1rem;
+  cursor: pointer;
+}
+.nsc-root .nsc-help-toggle:hover,
+.nsc-root .nsc-help-toggle[aria-expanded="true"] {
+  color: var(--nsc-primary);
+}
+.nsc-root .nsc-help {
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  background: var(--nsc-card-alt);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+.nsc-root .nsc-help p {
+  margin: 0 0 0.35rem;
+}
+.nsc-root .nsc-help p:last-child {
+  margin-bottom: 0;
+}
+.nsc-root .nsc-create-grid a.btn {
+  text-decoration: none;
+}
+.nsc-node-toolbar .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}

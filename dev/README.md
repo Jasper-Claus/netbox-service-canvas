@@ -54,7 +54,7 @@ scp -r .\pyproject.toml .\README.md .\dev .\netbox_service_canvas user@VM-IP:~/n
 **Variante B, sobald das Repo auf GitHub liegt:**
 
 ```bash
-git clone https://github.com/REPLACE_ME/netbox-service-canvas.git ~/netbox-service-canvas
+git clone https://github.com/Jasper-Claus/netbox-service-canvas.git ~/netbox-service-canvas
 ```
 
 Auf der VM wird **kein Node.js** gebraucht, weil das gebaute Frontend unter `netbox_service_canvas/static/` schon
@@ -183,7 +183,7 @@ Wenn im Editor etwas nicht klappt: Browser-Konsole öffnen (F12 → Konsole) und
 
 | Was | Befehl (in `~/netbox-dev`) |
 |---|---|
-| Code aktualisieren | `scp` wie in Schritt 2 oder `git -C ~/netbox-service-canvas pull`; NetBox lädt automatisch neu |
+| Code aktualisieren | `scp` wie in Schritt 2 oder `git -C ~/netbox-service-canvas pull`, dann `chmod -R a+rX ~/netbox-service-canvas`, `docker compose restart netbox netbox-worker` und bei neuen Migrationen `docker compose exec netbox /opt/netbox/netbox/manage.py migrate`. `collectstatic` ist in der Dev-Umgebung **nicht** nötig (DEBUG liefert die Dateien direkt aus); danach im Browser Strg+F5 |
 | Neue Migration einspielen | `docker compose exec netbox /opt/netbox/netbox/manage.py migrate` |
 | Logs | `docker compose logs -f netbox` |
 | Shell | `docker compose exec netbox /opt/netbox/netbox/manage.py nbshell` |

@@ -4,21 +4,30 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netbox-service-canvas"
-version = "0.1.0"
-description = "Interactive canvas for NetBox: which services run where and how they talk to each other."
+version = "0.2.0"
+description = "Interactive canvas for NetBox: which services run where, how they talk to each other and what breaks if a host fails."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.12"
 authors = [{ name = "Jasper Claus" }]
+keywords = ["netbox", "netbox-plugin", "homelab", "service-map", "dependency-mapping", "ipam", "dcim", "diagram"]
 classifiers = [
+    "Development Status :: 4 - Beta",
     "Framework :: Django",
+    "Intended Audience :: System Administrators",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: Apache Software License",
+    "Topic :: System :: Networking",
+    "Topic :: System :: Systems Administration",
 ]
 dependencies = []
 
 [project.urls]
-Source = "https://github.com/REPLACE_ME/netbox-service-canvas"
+Homepage = "https://github.com/Jasper-Claus/netbox-service-canvas"
+Source = "https://github.com/Jasper-Claus/netbox-service-canvas"
+Issues = "https://github.com/Jasper-Claus/netbox-service-canvas/issues"
+Changelog = "https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["netbox_service_canvas*"]
@@ -32,3 +41,8 @@ netbox_service_canvas = [
 [tool.ruff]
 line-length = 120
 target-version = "py312"
+extend-exclude = ["netbox_service_canvas/migrations"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package __init__ files re-export their modules
+"__init__.py" = ["F403"]

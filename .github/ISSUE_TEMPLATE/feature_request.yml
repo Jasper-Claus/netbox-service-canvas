@@ -1,0 +1,21 @@
+name: ✨ Feature request
+description: Suggest an idea for the canvas or the data model
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: Describe your use case. Screenshots or sketches are welcome!
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: How could it work?
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd like to help implement this

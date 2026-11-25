@@ -282,6 +282,7 @@ class CanvasEditorViewTest(TestCase):
         self.assertFalse(perms['add_connection'])
         self.assertFalse(perms['edit_notes'])
         self.assertFalse(perms['add_application'])
+        self.assertFalse(perms['add_device'])
 
     def test_editor_edit_flags(self):
         self.add_permissions(

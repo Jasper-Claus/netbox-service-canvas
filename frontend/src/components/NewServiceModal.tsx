@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ApiError } from '../api';
 import { useEditor } from '../context';
-import { makeKey } from '../graph';
+import { APPLICATION_LABEL, makeKey } from '../graph';
 import { parsePorts } from '../util';
 import { Modal, Section } from './Modal';
 import { ObjectPicker, type Picked } from './ObjectPicker';
@@ -18,14 +18,23 @@ const COMMON_PORTS: Array<[number, string]> = [
   [80, 'HTTP'], [443, 'HTTPS'], [22, 'SSH'], [3000, 'Grafana'], [8080, 'Web'], [9090, 'Prometheus'], [5432, 'PostgreSQL'],
 ];
 
+const APP_TYPES = [{ label: APPLICATION_LABEL, title: 'Application', icon: 'mdi-apps' }];
+
+type AppMode = 'none' | 'new' | 'existing';
+
 interface Props {
   initialParent: { label: string; id: number; name?: string } | null;
   onClose: () => void;
-  onCreated: (serviceKey: string, parentKey: string) => void;
+  onCreated: (serviceKey: string, parentKey: string, applicationKey: string | null) => void;
 }
 
 export function NewServiceModal({ initialParent, onClose, onCreated }: Props) {
-  const { api } = useEditor();
+  const { api, perms, notify } = useEditor();
+  const canApp = perms.add_application || perms.change_application;
+  const [appMode, setAppMode] = useState<AppMode>('none');
+  const [appName, setAppName] = useState('');
+  const [appNameTouched, setAppNameTouched] = useState(false);
+  const [existingApp, setExistingApp] = useState<Picked>({ label: APPLICATION_LABEL, id: null });
   const [parent, setParent] = useState<Picked>(
     initialParent
       ? { label: initialParent.label, id: initialParent.id, display: initialParent.name }
@@ -40,7 +49,11 @@ export function NewServiceModal({ initialParent, onClose, onCreated }: Props) {
   const [busy, setBusy] = useState(false);
 
   const parsedPorts = parsePorts(ports);
-  const valid = parent.id !== null && name.trim() !== '' && parsedPorts !== null;
+  const effectiveAppName = appNameTouched ? appName : name;
+  const appValid = appMode === 'none'
+    || (appMode === 'new' && effectiveAppName.trim() !== '')
+    || (appMode === 'existing' && existingApp.id !== null);
+  const valid = parent.id !== null && name.trim() !== '' && parsedPorts !== null && appValid;
   const parentType = PARENT_TYPES.find((t) => t.label === parent.label);
 
   const addPort = (port: number) => {
@@ -61,7 +74,25 @@ export function NewServiceModal({ initialParent, onClose, onCreated }: Props) {
         ports: parsedPorts,
         description: description.trim(),
       });
-      onCreated(makeKey('ipam.service', created.id), makeKey(parent.label, parent.id));
+      let appKey: string | null = null;
+      try {
+        if (appMode === 'new') {
+          const app = await api.createApplication({
+            name: effectiveAppName.trim(), status: 'active', version: '', web_url: '', description: '', services: [created.id],
+          });
+          appKey = makeKey(APPLICATION_LABEL, app.id);
+        } else if (appMode === 'existing' && existingApp.id !== null) {
+          const app = await api.getApplication(existingApp.id);
+          await api.updateApplication(existingApp.id, { services: [...app.services.map((s) => s.id), created.id] });
+          appKey = makeKey(APPLICATION_LABEL, existingApp.id);
+        }
+      } catch (e) {
+        // The service exists already; report the application problem but do not lose the service
+        notify(`Service angelegt, aber Application fehlgeschlagen: ${e instanceof ApiError ? e.message : String(e)}`, 'danger');
+        onCreated(makeKey('ipam.service', created.id), makeKey(parent.label, parent.id), null);
+        return;
+      }
+      onCreated(makeKey('ipam.service', created.id), makeKey(parent.label, parent.id), appKey);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
       setBusy(false);
@@ -72,7 +103,7 @@ export function NewServiceModal({ initialParent, onClose, onCreated }: Props) {
     <Modal
       title="Neuer Service"
       icon="mdi-cog-outline"
-      subtitle="Legt einen NetBox-Service an und platziert ihn auf der Canvas."
+      subtitle="Ein Service ist ein Port auf einem Host, z. B. grafana auf nas, TCP 3000. Er wird in NetBox angelegt und auf die Canvas gelegt."
       size="lg"
       onClose={onClose}
       footer={(
@@ -162,6 +193,50 @@ export function NewServiceModal({ initialParent, onClose, onCreated }: Props) {
           </div>
         </Section>
       </div>
+      {canApp && (
+        <div className="mt-3">
+          <Section
+            title="Application (optional)"
+            hint="Eine Application fasst Services zu einer Software zusammen, z. B. Grafana = Web-UI + Datenbank. Für einen einzelnen Port brauchst du keine."
+          >
+            <div className="nsc-segmented mb-2" role="radiogroup" aria-label="Application">
+              <button type="button" role="radio" aria-checked={appMode === 'none'} className={appMode === 'none' ? 'active' : ''} onClick={() => setAppMode('none')}>
+                Keine
+              </button>
+              {perms.add_application && (
+                <button type="button" role="radio" aria-checked={appMode === 'new'} className={appMode === 'new' ? 'active' : ''} onClick={() => setAppMode('new')}>
+                  <i className="mdi mdi-plus" /> Neue Application
+                </button>
+              )}
+              {perms.change_application && (
+                <button type="button" role="radio" aria-checked={appMode === 'existing'} className={appMode === 'existing' ? 'active' : ''} onClick={() => setAppMode('existing')}>
+                  <i className="mdi mdi-link-variant" /> Zu bestehender hinzufügen
+                </button>
+              )}
+            </div>
+            {appMode === 'new' && (
+              <div>
+                <label className="form-label" htmlFor="nsc-svc-app-name">Name der Application</label>
+                <input
+                  id="nsc-svc-app-name"
+                  className="form-control"
+                  placeholder="z. B. Grafana"
+                  value={effectiveAppName}
+                  maxLength={100}
+                  onChange={(e) => {
+                    setAppNameTouched(true);
+                    setAppName(e.target.value);
+                  }}
+                />
+                <div className="form-text">Version, URL usw. kannst du später im Knoten-Panel ergänzen.</div>
+              </div>
+            )}
+            {appMode === 'existing' && (
+              <ObjectPicker types={APP_TYPES} value={existingApp} onChange={setExistingApp} idPrefix="nsc-svc-app" compact />
+            )}
+          </Section>
+        </div>
+      )}
       {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
     </Modal>
   );

@@ -23,6 +23,14 @@ interface Props {
   onNewService: () => void;
 }
 
+/** One-line explanation of each object type, shown in the panel. */
+const TYPE_HINTS: Record<string, string> = {
+  device: 'Physisches Gerät aus NetBox (DCIM).',
+  virtualmachine: 'Virtuelle Maschine aus NetBox.',
+  service: 'Ein Port/Protokoll auf genau einem Host (NetBox-Service).',
+  application: 'Software als Ganzes, bestehend aus einem oder mehreren Services.',
+};
+
 function editUrl(desc: ObjectDescriptor): string {
   const back = `${window.location.pathname}${window.location.search}`;
   return `${desc.url}edit/?return_url=${encodeURIComponent(back)}`;
@@ -216,7 +224,7 @@ export function NodePanel({
       <div className="nsc-panel-head nsc-node-panel-head" style={{ ['--nsc-status' as string]: statusColorVar(desc.status?.color) }}>
         <span className="nsc-panel-icon"><i className={`mdi ${NODE_ICONS[desc.type]}`} /></span>
         <div className="flex-grow-1 min-w-0">
-          <div className="small text-muted text-uppercase">{NODE_TYPE_LABELS[desc.type]}</div>
+          <div className="small text-muted text-uppercase" title={TYPE_HINTS[desc.type]}>{NODE_TYPE_LABELS[desc.type]}</div>
           <h6 className="mb-0 text-truncate" title={desc.name}>{desc.name}</h6>
         </div>
         <button type="button" className="btn-close" aria-label="Schließen" onClick={onClose} />
@@ -238,6 +246,7 @@ export function NodePanel({
             : <ApplicationEditor desc={desc} onChanged={onChanged} />
         ) : (
           <>
+            <div className="nsc-type-hint">{TYPE_HINTS[desc.type]}</div>
             <dl className="nsc-facts">
               {desc.status && (
                 <>
@@ -294,6 +303,11 @@ export function NodePanel({
               >
                 <i className="mdi mdi-lightning-bolt-outline" /> {impactActive ? 'Impact ausblenden' : 'Impact-Analyse'}
               </button>
+              {layoutEditable && (
+                <button type="button" className="btn btn-sm btn-outline-danger" onClick={onRemove} title="Das Objekt bleibt in NetBox erhalten">
+                  <i className="mdi mdi-close-circle-outline" /> Von dieser Canvas entfernen
+                </button>
+              )}
               {isHost && !readOnly && perms.add_service && (
                 <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onNewService}>
                   <i className="mdi mdi-plus" /> Service auf diesem Host
@@ -325,10 +339,10 @@ export function NodePanel({
             )}
 
             {layoutEditable && (
-              <button type="button" className="btn btn-sm btn-ghost-danger w-100 mt-3" onClick={onRemove}>
-                <i className="mdi mdi-eye-off-outline" /> Von dieser Canvas entfernen
-                <div className="small text-muted">Das Objekt bleibt in NetBox erhalten.</div>
-              </button>
+              <div className="nsc-hint mt-2">
+                <i className="mdi mdi-information-outline" /> „Entfernen“ (oder Taste Entf) nimmt den Knoten nur von
+                dieser Canvas. Löschen in NetBox geht über „Alle Felder bearbeiten“ → Delete.
+              </div>
             )}
           </>
         )}

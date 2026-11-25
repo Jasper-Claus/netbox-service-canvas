@@ -6,7 +6,6 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
-  getNodesBounds,
   getViewportForBounds,
   useNodesInitialized,
   useNodesState,
@@ -123,8 +122,9 @@ function Editor({ config }: { config: EditorConfig }) {
   // Notes are stored together with the layout
   const canSaveLayout = canEditLayout || perms.edit_notes;
   const storagePrefix = `nsc:${config.canvas.id}:`;
+  const netboxBase = config.urls.api.replace(/api\/?$/, '') || '/';
 
-  const { screenToFlowPosition, fitView } = useReactFlow<CanvasNode, CanvasEdge>();
+  const { screenToFlowPosition, fitView, getNodesBounds } = useReactFlow<CanvasNode, CanvasEdge>();
   const colorMode = useColorMode();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -611,7 +611,8 @@ function Editor({ config }: { config: EditorConfig }) {
       const padding = 40;
       const width = Math.min(8000, Math.ceil(bounds.width + padding * 2));
       const height = Math.min(8000, Math.ceil(bounds.height + padding * 2));
-      const vp = getViewportForBounds(bounds, width, height, 0.1, 2, padding);
+      // padding as "px": a plain number would be read as a ratio of the image size
+      const vp = getViewportForBounds(bounds, width, height, 0.1, 2, `${padding}px`);
       const background = getComputedStyle(wrapperRef.current!).getPropertyValue('--nsc-bg').trim()
         || (colorMode === 'dark' ? '#1a2234' : '#ffffff');
       const options = {
@@ -628,7 +629,7 @@ function Editor({ config }: { config: EditorConfig }) {
     } finally {
       setBusy(false);
     }
-  }, [colorMode, config.canvas.name, notify]);
+  }, [colorMode, config.canvas.name, getNodesBounds, notify]);
 
   const openNewService = useCallback((hostKey: string | null) => {
     const node = hostKey ? nodesRef.current.find((n) => n.id === hostKey) : undefined;
@@ -678,21 +679,27 @@ function Editor({ config }: { config: EditorConfig }) {
     }
   }, [addAtCenter, addNodes, layoutEditable, notify, refreshGraph]);
 
-  const onServiceCreated = useCallback((serviceKey: string, parentKey: string) => {
+  const onServiceCreated = useCallback((serviceKey: string, parentKey: string, appKey: string | null) => {
     setNewService(null);
-    notify('Service angelegt.', 'success');
+    notify(appKey ? 'Service und Application gespeichert.' : 'Service angelegt.', 'success');
     const byId = new Map(nodesRef.current.map((n) => [n.id, n]));
     const parent = byId.get(parentKey);
+    let pos: { x: number; y: number };
     if (parent) {
       const p = absolutePosition(parent, byId);
       const siblings = nodesRef.current.filter(
         (n) => isObjectNode(n) && n.data.desc?.service?.parent_key === parentKey,
       ).length;
-      addNodes({ [serviceKey]: { x: p.x + siblings * (NODE_WIDTH + 20), y: p.y + NODE_HEIGHT + 60 } });
+      pos = { x: p.x + siblings * (NODE_WIDTH + 20), y: p.y + NODE_HEIGHT + 60 };
     } else {
-      addAtCenter(serviceKey);
+      const c = viewportCenter();
+      pos = { x: c.x - NODE_WIDTH / 2, y: c.y - NODE_HEIGHT / 2 };
     }
-  }, [addAtCenter, addNodes, notify]);
+    const positions: Record<string, { x: number; y: number }> = { [serviceKey]: pos };
+    // A new or newly linked application goes right below its service (unless it is on the canvas already)
+    if (appKey && !byId.has(appKey)) positions[appKey] = { x: pos.x, y: pos.y + NODE_HEIGHT + 60 };
+    addNodes(positions);
+  }, [addNodes, notify, viewportCenter]);
 
   const exportPdf = useCallback(async () => {
     const element = wrapperRef.current?.querySelector<HTMLElement>('.react-flow__viewport');
@@ -708,12 +715,13 @@ function Editor({ config }: { config: EditorConfig }) {
       const padding = 30;
       const imgW = Math.min(6000, Math.ceil(bounds.width + padding * 2));
       const imgH = Math.min(6000, Math.ceil(bounds.height + padding * 2));
-      const vp = getViewportForBounds(bounds, imgW, imgH, 0.1, 2, padding);
+      const vp = getViewportForBounds(bounds, imgW, imgH, 0.1, 2, `${padding}px`);
       const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
         width: imgW,
         height: imgH,
-        pixelRatio: 2,
+        // small diagrams are scaled up to the page width, so render them sharper
+        pixelRatio: Math.max(2, Math.min(4, 3000 / imgW)),
         style: { width: `${imgW}px`, height: `${imgH}px`, transform: `translate(${vp.x}px, ${vp.y}px) scale(${vp.zoom})` },
         filter: (node: HTMLElement) => !node.classList?.contains('react-flow__resize-control'),
       });
@@ -775,7 +783,7 @@ function Editor({ config }: { config: EditorConfig }) {
       editor?.classList.remove('nsc-print-light');
       setBusy(false);
     }
-  }, [config.canvas.name, notify]);
+  }, [config.canvas.name, getNodesBounds, notify]);
 
   const removeFromCanvas = useCallback((key: string) => {
     setNodes((ns) => ns.filter((n) => n.id !== key));
@@ -792,8 +800,9 @@ function Editor({ config }: { config: EditorConfig }) {
   const impactName = impactRoot ? (descriptorFor(impactRoot)?.name ?? impactRoot) : null;
 
   const contextValue: EditorContextValue = useMemo(() => ({
-    api, perms, readOnly, grid, updateGroup, deleteGroup, updateNote, deleteNote, notify,
-  }), [api, perms, readOnly, grid, updateGroup, deleteGroup, updateNote, deleteNote, notify]);
+    api, perms, readOnly, grid, netboxBase, updateGroup, deleteGroup, updateNote, deleteNote, removeNode: removeFromCanvas,
+    notify,
+  }), [api, perms, readOnly, grid, netboxBase, updateGroup, deleteGroup, updateNote, deleteNote, removeFromCanvas, notify]);
 
   if (loadError) {
     return (

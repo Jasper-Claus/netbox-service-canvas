@@ -436,6 +436,8 @@ class CanvasEditorView(generic.ObjectView):
                 'delete_hop': has('netbox_service_canvas.delete_connectionhop'),
                 'add_service': has('ipam.add_service'),
                 'change_service': has('ipam.change_service'),
+                'add_device': has('dcim.add_device'),
+                'add_virtualmachine': has('virtualization.add_virtualmachine'),
                 'add_application': has('netbox_service_canvas.add_application'),
                 'change_application': has('netbox_service_canvas.change_application'),
                 'edit_notes': can_change_canvas and all(has(f'netbox_service_canvas.{p}') for p in (

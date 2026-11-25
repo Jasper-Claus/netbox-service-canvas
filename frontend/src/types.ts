@@ -126,6 +126,8 @@ export interface Perms {
   delete_hop: boolean;
   add_service: boolean;
   change_service: boolean;
+  add_device: boolean;
+  add_virtualmachine: boolean;
   add_application: boolean;
   change_application: boolean;
   edit_notes: boolean;

@@ -1,4 +1,4 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, NodeToolbar, Position, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import type { ObjectNode as ObjectNodeType } from '../graph';
 import { useEditor } from '../context';
@@ -25,14 +25,23 @@ export function statusColorVar(color: string | null | undefined): string {
 }
 
 function ObjectNodeComponent({ data, selected }: NodeProps<ObjectNodeType>) {
-  const { readOnly, perms } = useEditor();
+  const { readOnly, perms, removeNode } = useEditor();
   const desc = data.desc;
+  const removable = !readOnly && perms.edit_layout;
+  const toolbar = removable && (
+    <NodeToolbar isVisible={selected} position={Position.Top} align="end" className="nsc-group-toolbar nsc-node-toolbar">
+      <button type="button" className="btn btn-sm btn-ghost-danger" title="Von dieser Canvas entfernen (Entf). Das Objekt bleibt in NetBox." onClick={() => removeNode(data.key)}>
+        <i className="mdi mdi-close-circle-outline" /> Entfernen
+      </button>
+    </NodeToolbar>
+  );
   const connectable = !readOnly && (perms.add_connection || perms.change_service);
   const impactClass = data.impact ? ` nsc-impact-${data.impact}` : '';
 
   if (!desc) {
     return (
       <div className={`nsc-node nsc-node-missing${selected ? ' selected' : ''}${impactClass}`} title={data.key}>
+        {toolbar}
         <Handle type="target" position={Position.Left} isConnectable={false} />
         <div className="nsc-node-head">
           <i className="mdi mdi-help-circle-outline" />
@@ -55,6 +64,7 @@ function ObjectNodeComponent({ data, selected }: NodeProps<ObjectNodeType>) {
       style={{ ['--nsc-status' as string]: statusColorVar(desc.status?.color) }}
       title={desc.status ? `Status: ${desc.status.label} – klicken für Details` : 'Klicken für Details'}
     >
+      {toolbar}
       <Handle type="target" position={Position.Left} isConnectable={connectable} />
       <div className="nsc-node-head">
         <i className={`mdi ${NODE_ICONS[desc.type] ?? 'mdi-shape-outline'}`} />

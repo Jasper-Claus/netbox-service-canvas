@@ -51,7 +51,7 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
     <Modal
       title="Neue Application"
       icon="mdi-apps"
-      subtitle="Eine Anwendung wie Grafana oder Paperless, bestehend aus einem oder mehreren Services."
+      subtitle="Die Software als Ganzes, z. B. Grafana oder Paperless. Sie besteht aus einem oder mehreren Services (Ports auf Hosts). Fehlt der Service noch, lege ihn zuerst über „Service“ an – dort kann die Application gleich mit entstehen."
       size="lg"
       onClose={onClose}
       footer={(

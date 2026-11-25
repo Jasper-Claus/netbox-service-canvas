@@ -39,16 +39,16 @@ docker compose start netbox netbox-worker
 Eine Zeile ergänzen. Empfohlen ist das **Tag-Archiv**, denn dafür braucht das Image kein `git`:
 
 ```text
-netbox-service-canvas @ https://github.com/REPLACE_ME/netbox-service-canvas/archive/refs/tags/v0.1.0.tar.gz
+netbox-service-canvas @ https://github.com/Jasper-Claus/netbox-service-canvas/archive/refs/tags/v0.2.0.tar.gz
 ```
 
 Alternativ direkt aus Git, wenn dein `Dockerfile-Plugins` `git` installiert:
 
 ```text
-netbox-service-canvas @ git+https://github.com/REPLACE_ME/netbox-service-canvas.git@v0.1.0
+netbox-service-canvas @ git+https://github.com/Jasper-Claus/netbox-service-canvas.git@v0.2.0
 ```
 
-> `REPLACE_ME` durch deinen GitHub-Benutzer ersetzen, sobald das Repo veröffentlicht ist.
+> Die URL funktioniert, sobald das Repo öffentlich ist und das Tag `v0.2.0` existiert.
 
 Dein `Dockerfile-Plugins` muss nicht geändert werden. Es installiert ohnehin alles aus `plugin_requirements.txt`,
 typischerweise so:
@@ -143,7 +143,7 @@ Diese Migration in der Branch-Ansicht ausführen oder einen neuen Branch anlegen
 
 ## 7. Update
 
-1. In `plugin_requirements.txt` das Tag ändern, z. B. `v0.1.0` → `v0.2.0`.
+1. In `plugin_requirements.txt` das Tag ändern, z. B. `v0.2.0` → `v0.3.0`.
 2. Vorher das Backup aus Schritt 1 machen.
 3. Dann:
 

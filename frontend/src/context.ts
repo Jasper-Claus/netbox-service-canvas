@@ -21,10 +21,14 @@ export interface EditorContextValue {
   perms: Perms;
   readOnly: boolean;
   grid: number;
+  /** NetBox UI base path, e.g. "/" or "/netbox/" (derived from the API root). */
+  netboxBase: string;
   updateGroup: (nodeId: string, update: GroupUpdate) => void;
   deleteGroup: (nodeId: string) => void;
   updateNote: (nodeId: string, update: NoteUpdate) => void;
   deleteNote: (nodeId: string) => void;
+  /** Remove an object node from the canvas (the NetBox object stays). */
+  removeNode: (key: string) => void;
   notify: (message: string, kind?: 'success' | 'danger' | 'info') => void;
 }
 
