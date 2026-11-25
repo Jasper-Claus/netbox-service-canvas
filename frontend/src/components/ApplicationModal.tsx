@@ -5,6 +5,7 @@ import { useEditor } from '../context';
 import { APPLICATION_LABEL, makeKey } from '../graph';
 import { Modal, Section } from './Modal';
 import { MultiObjectPicker } from './ObjectPicker';
+import { t } from '../i18n';
 
 interface Props {
   /** Services to pre-select (e.g. the ones currently selected on the canvas). */
@@ -49,16 +50,16 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
 
   return (
     <Modal
-      title="Neue Application"
+      title={t('New application')}
       icon="mdi-apps"
-      subtitle="Die Software als Ganzes, z. B. Grafana oder Paperless. Sie besteht aus einem oder mehreren Services (Ports auf Hosts). Fehlt der Service noch, lege ihn zuerst über „Service“ an – dort kann die Application gleich mit entstehen."
+      subtitle={t('The software as a whole, e.g. Grafana or Paperless. It consists of one or more services (ports on hosts). If the service does not exist yet, create it first with "Service"; the application can be created there in the same step.')}
       size="lg"
       onClose={onClose}
       footer={(
         <>
-          <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Abbrechen</button>
+          <button type="button" className="btn btn-outline-secondary" onClick={onClose}>{t('Cancel')}</button>
           <button type="button" className="btn btn-primary" disabled={!valid || busy} onClick={submit}>
-            <i className="mdi mdi-check" /> {busy ? 'Speichere…' : 'Application anlegen'}
+            <i className="mdi mdi-check" /> {busy ? t('Saving…') : t('Create application')}
           </button>
         </>
       )}
@@ -70,7 +71,7 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
             <input
               id="nsc-app-name"
               className="form-control"
-              placeholder="z. B. Grafana"
+              placeholder={t('e.g. Grafana')}
               value={name}
               maxLength={100}
               autoFocus
@@ -81,7 +82,7 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
             <div className="col-7">
               <label className="form-label" htmlFor="nsc-app-status">Status</label>
               <select id="nsc-app-status" className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-                {APPLICATION_STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {APPLICATION_STATUSES.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
               </select>
             </div>
             <div className="col-5">
@@ -89,7 +90,7 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
               <input
                 id="nsc-app-version"
                 className="form-control"
-                placeholder="z. B. 11.2"
+                placeholder={t('e.g. 11.2')}
                 value={version}
                 maxLength={50}
                 onChange={(e) => setVersion(e.target.value)}
@@ -97,7 +98,7 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
             </div>
           </div>
           <div className="mb-3">
-            <label className="form-label" htmlFor="nsc-app-url">URL <span className="text-muted">(optional)</span></label>
+            <label className="form-label" htmlFor="nsc-app-url">URL <span className="text-muted">({t('optional')})</span></label>
             <input
               id="nsc-app-url"
               type="url"
@@ -107,10 +108,10 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
               maxLength={200}
               onChange={(e) => setWebUrl(e.target.value)}
             />
-            {!urlValid && <div className="invalid-feedback">Bitte mit http:// oder https:// beginnen.</div>}
+            {!urlValid && <div className="invalid-feedback">{t('Please start with http:// or https://.')}</div>}
           </div>
           <div>
-            <label className="form-label" htmlFor="nsc-app-description">Beschreibung <span className="text-muted">(optional)</span></label>
+            <label className="form-label" htmlFor="nsc-app-description">{t('Description')} <span className="text-muted">({t('optional')})</span></label>
             <input
               id="nsc-app-description"
               className="form-control"
@@ -121,7 +122,7 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
           </div>
         </Section>
 
-        <Section title="Services" hint="Aus welchen NetBox-Services besteht die Application? Kann später ergänzt werden.">
+        <Section title="Services" hint={t('Which NetBox services make up the application? You can add them later.')}>
           <MultiObjectPicker label="ipam.service" value={services} onChange={setServices} idPrefix="nsc-app-services" />
         </Section>
       </div>

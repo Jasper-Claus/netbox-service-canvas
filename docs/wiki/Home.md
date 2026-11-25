@@ -16,7 +16,6 @@
 | [[Export]] | PNG, SVG and the print-ready A4 PDF |
 | [[FAQ]] | Common questions and troubleshooting |
 
-> 🇩🇪 The editor UI is currently German. This wiki gives the German button labels in quotes, e.g. "Bearbeiten"
-> (edit), so you can find them.
+> The editor follows your NetBox language: English by default, German if NetBox is set to German.
 
 The full README is on the [repository front page](https://github.com/Jasper-Claus/netbox-service-canvas).

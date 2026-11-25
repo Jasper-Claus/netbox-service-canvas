@@ -65,6 +65,7 @@ import {
 import { autoLayout } from './layout';
 import type { EditorConfig, GraphResponse, ObjectDescriptor, Snapshot } from './types';
 import { downloadDataUrl, slugify } from './util';
+import { locale, t } from './i18n';
 
 const nodeTypes = { object: ObjectNode, group: GroupNode, note: NoteNode };
 const AUTOSAVE_DELAY = 800;
@@ -189,7 +190,7 @@ function Editor({ config }: { config: EditorConfig }) {
       applyDescriptors(g.objects);
       return g;
     } catch (e) {
-      notify(`Laden fehlgeschlagen: ${(e as Error).message}`, 'danger');
+      notify(t('Loading failed: {error}', { error: (e as Error).message }), 'danger');
       return null;
     }
   }, [api, applyDescriptors, notify]);
@@ -268,7 +269,7 @@ function Editor({ config }: { config: EditorConfig }) {
       setSaveState('saved');
     } catch (e) {
       setSaveState('error');
-      notify(`Layout nicht gespeichert: ${e instanceof ApiError ? e.message : String(e)}`, 'danger');
+      notify(t('Layout not saved: {error}', { error: e instanceof ApiError ? e.message : String(e) }), 'danger');
     } finally {
       savingRef.current = false;
       if (pendingSaveRef.current) {
@@ -482,7 +483,7 @@ function Editor({ config }: { config: EditorConfig }) {
       style: { width: r.width, height: r.height },
       zIndex: -1,
       selected: !selected.length,
-      data: { kind: 'group', clientKey, dbId: null, name: 'Neue Gruppe', color: '607d8b' },
+      data: { kind: 'group', clientKey, dbId: null, name: t('New group'), color: '607d8b' },
     };
     setNodes((ns) => {
       let result: CanvasNode[] = sortParentsFirst([...ns.map((n) => ({ ...n, selected: false })), group]);
@@ -574,7 +575,7 @@ function Editor({ config }: { config: EditorConfig }) {
       setNodes(laidOut);
       window.setTimeout(() => fitView({ duration: 400, maxZoom: 1.2 }), 50);
     } catch (e) {
-      notify(`Auto-Layout fehlgeschlagen: ${(e as Error).message}`, 'danger');
+      notify(t('Auto layout failed: {error}', { error: (e as Error).message }), 'danger');
     } finally {
       setBusy(false);
     }
@@ -589,12 +590,12 @@ function Editor({ config }: { config: EditorConfig }) {
       const { objects } = await api.missing(unsaved);
       const keys = Object.keys(objects).filter((k) => !nodesRef.current.some((n) => n.id === k));
       if (!keys.length) {
-        notify('Nichts zu ergänzen – alle zugehörigen Objekte sind schon im Canvas.', 'info');
+        notify(t('Nothing to add: all related objects are already on the canvas.'), 'info');
         return;
       }
-      if (keys.length > 40 && !window.confirm(`${keys.length} Objekte hinzufügen?`)) return;
+      if (keys.length > 40 && !window.confirm(t('Add {count} objects?', { count: keys.length }))) return;
       addNodes(placeNew(nodesRef.current, keys, objects, grid), objects);
-      notify(`${keys.length} Objekt(e) ergänzt.`, 'success');
+      notify(t('{count} object(s) added.', { count: keys.length }), 'success');
     } catch (e) {
       notify((e as Error).message, 'danger');
     } finally {
@@ -625,7 +626,7 @@ function Editor({ config }: { config: EditorConfig }) {
       const dataUrl = format === 'png' ? await toPng(element, { ...options, pixelRatio: 2 }) : await toSvg(element, options);
       downloadDataUrl(dataUrl, `${slugify(config.canvas.name)}.${format}`);
     } catch (e) {
-      notify(`Export fehlgeschlagen: ${(e as Error).message}`, 'danger');
+      notify(t('Export failed: {error}', { error: (e as Error).message }), 'danger');
     } finally {
       setBusy(false);
     }
@@ -655,7 +656,7 @@ function Editor({ config }: { config: EditorConfig }) {
 
   const onApplicationCreated = useCallback((appKey: string, serviceKeys: string[]) => {
     setNewApplication(null);
-    notify('Application angelegt.', 'success');
+    notify(t('Application created.'), 'success');
     const byId = new Map(nodesRef.current.map((n) => [n.id, n]));
     const placed = serviceKeys.map((k) => byId.get(k)).filter((n): n is CanvasNode => !!n);
     if (!layoutEditable) {
@@ -681,7 +682,7 @@ function Editor({ config }: { config: EditorConfig }) {
 
   const onServiceCreated = useCallback((serviceKey: string, parentKey: string, appKey: string | null) => {
     setNewService(null);
-    notify(appKey ? 'Service und Application gespeichert.' : 'Service angelegt.', 'success');
+    notify(appKey ? t('Service and application saved.') : t('Service created.'), 'success');
     const byId = new Map(nodesRef.current.map((n) => [n.id, n]));
     const parent = byId.get(parentKey);
     let pos: { x: number; y: number };
@@ -747,7 +748,7 @@ function Editor({ config }: { config: EditorConfig }) {
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9);
       pdf.setTextColor(102, 115, 130);
-      pdf.text(`Stand: ${new Date().toLocaleString('de-DE')}`, margin, margin + 11.5);
+      pdf.text(t('As of {date}', { date: new Date().toLocaleString(locale()) }), margin, margin + 11.5);
       pdf.text('NetBox Service Canvas', pageW - margin, margin + 6, { align: 'right' });
       pdf.setDrawColor(220, 225, 231);
       pdf.line(margin, margin + headerH - 2, pageW - margin, margin + headerH - 2);
@@ -759,11 +760,11 @@ function Editor({ config }: { config: EditorConfig }) {
       const ly = pageH - margin - 3;
       let lx = margin;
       const legend: Array<{ label: string; color: [number, number, number]; dash?: number[] }> = [
-        { label: 'aktiv', color: [47, 179, 68] },
-        { label: 'geplant', color: [23, 162, 184], dash: [1.5, 1] },
-        { label: 'deaktiviert', color: [154, 160, 172], dash: [0.5, 1] },
-        { label: 'läuft auf', color: [102, 115, 130], dash: [1, 1] },
-        { label: 'gehört zu (Application)', color: [156, 39, 176], dash: [0.3, 1.2] },
+        { label: t('active'), color: [47, 179, 68] },
+        { label: t('planned'), color: [23, 162, 184], dash: [1.5, 1] },
+        { label: t('disabled'), color: [154, 160, 172], dash: [0.5, 1] },
+        { label: t('runs on'), color: [102, 115, 130], dash: [1, 1] },
+        { label: t('belongs to (application)'), color: [156, 39, 176], dash: [0.3, 1.2] },
       ];
       pdf.setFontSize(8);
       for (const item of legend) {
@@ -778,7 +779,7 @@ function Editor({ config }: { config: EditorConfig }) {
       }
       pdf.save(`${slugify(config.canvas.name)}.pdf`);
     } catch (e) {
-      notify(`PDF-Export fehlgeschlagen: ${(e as Error).message}`, 'danger');
+      notify(t('PDF export failed: {error}', { error: (e as Error).message }), 'danger');
     } finally {
       editor?.classList.remove('nsc-print-light');
       setBusy(false);
@@ -807,9 +808,9 @@ function Editor({ config }: { config: EditorConfig }) {
   if (loadError) {
     return (
       <div className="alert alert-danger m-3">
-        Canvas konnte nicht geladen werden: {loadError}
+        {t('Could not load the canvas: {error}', { error: loadError })}
         <button type="button" className="btn btn-sm btn-outline-danger ms-3" onClick={() => void initialLoad()}>
-          Erneut versuchen
+          {t('Try again')}
         </button>
       </div>
     );
@@ -845,7 +846,7 @@ function Editor({ config }: { config: EditorConfig }) {
           impactName={impactName}
           onClearImpact={() => setImpactRoot(null)}
           onReload={() => {
-            if (saveState !== 'saved' && !window.confirm('Ungespeicherte Layout-Änderungen verwerfen?')) return;
+            if (saveState !== 'saved' && !window.confirm(t('Discard unsaved layout changes?'))) return;
             setSelectedFlowId(null);
             setSelectedNodeKey(null);
             setImpactRoot(null);
@@ -865,12 +866,12 @@ function Editor({ config }: { config: EditorConfig }) {
             />
           )}
           <div className="nsc-flow" ref={wrapperRef} onDragOver={onDragOver} onDrop={onDrop}>
-            {loading && <div className="nsc-overlay text-muted">Lade Canvas…</div>}
+            {loading && <div className="nsc-overlay text-muted">{t('Loading canvas…')}</div>}
             {!loading && nodes.length === 0 && (
               <div className="nsc-overlay nsc-empty text-muted">
                 {layoutEditable
-                  ? 'Die Canvas ist leer. Ziehe Devices, VMs, Services oder Applications aus der Seitenleiste hierher.'
-                  : 'Die Canvas ist leer.'}
+                  ? t('The canvas is empty. Drag devices, VMs, services or applications here from the sidebar.')
+                  : t('The canvas is empty.')}
               </div>
             )}
             <ReactFlow<CanvasNode, CanvasEdge>
@@ -947,18 +948,18 @@ function Editor({ config }: { config: EditorConfig }) {
           )}
         </div>
         <div className="nsc-legend small text-muted">
-          <span><span className="nsc-legend-line active" /> aktiv</span>
-          <span><span className="nsc-legend-line planned" /> geplant</span>
-          <span><span className="nsc-legend-line disabled" /> deaktiviert</span>
-          <span><span className="nsc-legend-line runs-on" /> läuft auf</span>
-          <span><span className="nsc-legend-line part-of" /> gehört zu</span>
+          <span><span className="nsc-legend-line active" /> {t('active')}</span>
+          <span><span className="nsc-legend-line planned" /> {t('planned')}</span>
+          <span><span className="nsc-legend-line disabled" /> {t('disabled')}</span>
+          <span><span className="nsc-legend-line runs-on" /> {t('runs on')}</span>
+          <span><span className="nsc-legend-line part-of" /> {t('belongs to')}</span>
           {impact && (
             <>
-              <span><span className="nsc-legend-dot" style={{ background: '#d63939' }} /> fällt mit aus</span>
-              <span><span className="nsc-legend-dot" style={{ background: '#f76707' }} /> abhängig betroffen</span>
+              <span><span className="nsc-legend-dot" style={{ background: '#d63939' }} /> {t('fails with it')}</span>
+              <span><span className="nsc-legend-dot" style={{ background: '#f76707' }} /> {t('affected (depends on it)')}</span>
             </>
           )}
-          <span className="ms-auto">Tipp: Knoten oder Verbindung anklicken zum Bearbeiten</span>
+          <span className="ms-auto">{t('Tip: click a node or connection to edit it')}</span>
         </div>
         {pendingConnect && (
           <ConnectDialog
@@ -988,8 +989,8 @@ function Editor({ config }: { config: EditorConfig }) {
           />
         )}
         <div className="nsc-toasts">
-          {toasts.map((t) => (
-            <div key={t.id} className={`alert alert-${t.kind} py-2 px-3 mb-2 shadow-sm`}>{t.message}</div>
+          {toasts.map((toast) => (
+            <div key={toast.id} className={`alert alert-${toast.kind} py-2 px-3 mb-2 shadow-sm`}>{toast.message}</div>
           ))}
         </div>
       </div>

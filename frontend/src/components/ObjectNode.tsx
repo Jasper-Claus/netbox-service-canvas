@@ -2,6 +2,7 @@ import { Handle, NodeToolbar, Position, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import type { ObjectNode as ObjectNodeType } from '../graph';
 import { useEditor } from '../context';
+import { t } from '../i18n';
 
 export const NODE_ICONS: Record<string, string> = {
   device: 'mdi-server',
@@ -30,8 +31,8 @@ function ObjectNodeComponent({ data, selected }: NodeProps<ObjectNodeType>) {
   const removable = !readOnly && perms.edit_layout;
   const toolbar = removable && (
     <NodeToolbar isVisible={selected} position={Position.Top} align="end" className="nsc-group-toolbar nsc-node-toolbar">
-      <button type="button" className="btn btn-sm btn-ghost-danger" title="Von dieser Canvas entfernen (Entf). Das Objekt bleibt in NetBox." onClick={() => removeNode(data.key)}>
-        <i className="mdi mdi-close-circle-outline" /> Entfernen
+      <button type="button" className="btn btn-sm btn-ghost-danger" title={t('Remove from this canvas (Del). The object stays in NetBox.')} onClick={() => removeNode(data.key)}>
+        <i className="mdi mdi-close-circle-outline" /> {t('Remove')}
       </button>
     </NodeToolbar>
   );
@@ -45,9 +46,9 @@ function ObjectNodeComponent({ data, selected }: NodeProps<ObjectNodeType>) {
         <Handle type="target" position={Position.Left} isConnectable={false} />
         <div className="nsc-node-head">
           <i className="mdi mdi-help-circle-outline" />
-          <span className="nsc-node-name">Nicht verfügbar</span>
+          <span className="nsc-node-name">{t('Not available')}</span>
         </div>
-        <div className="nsc-node-sub">{data.key} – gelöscht oder keine Berechtigung</div>
+        <div className="nsc-node-sub">{data.key}: {t('deleted or no permission')}</div>
         <Handle type="source" position={Position.Right} isConnectable={false} />
       </div>
     );
@@ -62,7 +63,7 @@ function ObjectNodeComponent({ data, selected }: NodeProps<ObjectNodeType>) {
     <div
       className={`nsc-node nsc-node-${desc.type}${selected ? ' selected' : ''}${data.focused ? ' focused' : ''}${impactClass}`}
       style={{ ['--nsc-status' as string]: statusColorVar(desc.status?.color) }}
-      title={desc.status ? `Status: ${desc.status.label} – klicken für Details` : 'Klicken für Details'}
+      title={desc.status ? t('Status: {status}. Click for details', { status: desc.status.label }) : t('Click for details')}
     >
       {toolbar}
       <Handle type="target" position={Position.Left} isConnectable={connectable} />
@@ -82,7 +83,7 @@ function ObjectNodeComponent({ data, selected }: NodeProps<ObjectNodeType>) {
         {desc.primary_ip && <span className="font-monospace">{desc.primary_ip}</span>}
         {desc.subtitle && !app && <span className="text-truncate">{desc.subtitle}</span>}
       </div>
-      {data.impact === 'root' && <span className="nsc-impact-badge"><i className="mdi mdi-lightning-bolt" /> Ausfall</span>}
+      {data.impact === 'root' && <span className="nsc-impact-badge"><i className="mdi mdi-lightning-bolt" /> {t('Failure')}</span>}
       <Handle type="source" position={Position.Right} isConnectable={connectable} />
     </div>
   );

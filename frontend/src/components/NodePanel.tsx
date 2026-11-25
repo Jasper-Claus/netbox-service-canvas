@@ -7,6 +7,7 @@ import type { Flow, ObjectDescriptor } from '../types';
 import { parsePorts } from '../util';
 import { MultiObjectPicker } from './ObjectPicker';
 import { NODE_ICONS, NODE_TYPE_LABELS, statusColorVar } from './ObjectNode';
+import { t } from '../i18n';
 
 interface Props {
   desc: ObjectDescriptor;
@@ -25,10 +26,10 @@ interface Props {
 
 /** One-line explanation of each object type, shown in the panel. */
 const TYPE_HINTS: Record<string, string> = {
-  device: 'Physisches Gerät aus NetBox (DCIM).',
-  virtualmachine: 'Virtuelle Maschine aus NetBox.',
-  service: 'Ein Port/Protokoll auf genau einem Host (NetBox-Service).',
-  application: 'Software als Ganzes, bestehend aus einem oder mehreren Services.',
+  device: 'Physical device from NetBox (DCIM).',
+  virtualmachine: 'Virtual machine from NetBox.',
+  service: 'A port/protocol on exactly one host (NetBox service).',
+  application: 'Software as a whole, made of one or more services.',
 };
 
 function editUrl(desc: ObjectDescriptor): string {
@@ -54,7 +55,7 @@ function ServiceEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChanged:
     setError(null);
     try {
       await api.updateService(desc.id, { name: form.name.trim(), protocol: form.protocol, ports });
-      notify('Service gespeichert.', 'success');
+      notify(t('Service saved.'), 'success');
       onChanged();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
@@ -71,7 +72,7 @@ function ServiceEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChanged:
           onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </div>
       <div className="mb-2">
-        <span className="form-label small d-block">Protokoll</span>
+        <span className="form-label small d-block">{t('Protocol')}</span>
         <div className="nsc-segmented nsc-segmented-sm">
           {SERVICE_TRANSPORTS.map(([v, l]) => (
             <button key={v} type="button" className={form.protocol === v ? 'active' : ''} onClick={() => setForm({ ...form, protocol: v })}>
@@ -87,7 +88,7 @@ function ServiceEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChanged:
       </div>
       {error && <div className="alert alert-danger py-1 small">{error}</div>}
       <button type="button" className="btn btn-sm btn-primary" disabled={!dirty || !valid} onClick={save}>
-        <i className="mdi mdi-content-save-outline" /> Speichern
+        <i className="mdi mdi-content-save-outline" /> {t('Save')}
       </button>
     </fieldset>
   );
@@ -126,7 +127,7 @@ function ApplicationEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChan
     };
   }, [api, desc]);
 
-  if (!form) return error ? <div className="alert alert-danger py-1 small">{error}</div> : <div className="text-muted small">Lade…</div>;
+  if (!form) return error ? <div className="alert alert-danger py-1 small">{error}</div> : <div className="text-muted small">{t('Loading…')}</div>;
 
   const urlValid = !form.web_url || /^https?:\/\/\S+$/i.test(form.web_url.trim());
   const dirty = JSON.stringify(form) !== initial;
@@ -144,7 +145,7 @@ function ApplicationEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChan
         services: form.services.map((s) => s.id),
       });
       setInitial(JSON.stringify(form));
-      notify('Application gespeichert.', 'success');
+      notify(t('Application saved.'), 'success');
       onChanged();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
@@ -165,7 +166,7 @@ function ApplicationEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChan
           <label className="form-label small" htmlFor="nsc-node-app-status">Status</label>
           <select id="nsc-node-app-status" className="form-select form-select-sm" value={form.status}
             onChange={(e) => setForm({ ...form, status: e.target.value })}>
-            {APPLICATION_STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {APPLICATION_STATUSES.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
           </select>
         </div>
         <div className="col-5">
@@ -181,7 +182,7 @@ function ApplicationEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChan
           onChange={(e) => setForm({ ...form, web_url: e.target.value })} />
       </div>
       <div className="mb-2">
-        <label className="form-label small" htmlFor="nsc-node-app-description">Beschreibung</label>
+        <label className="form-label small" htmlFor="nsc-node-app-description">{t('Description')}</label>
         <input id="nsc-node-app-description" className="form-control form-control-sm" value={form.description} maxLength={200}
           onChange={(e) => setForm({ ...form, description: e.target.value })} />
       </div>
@@ -192,7 +193,7 @@ function ApplicationEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChan
       </div>
       {error && <div className="alert alert-danger py-1 small">{error}</div>}
       <button type="button" className="btn btn-sm btn-primary" disabled={!dirty || !urlValid || !form.name.trim()} onClick={save}>
-        <i className="mdi mdi-content-save-outline" /> Speichern
+        <i className="mdi mdi-content-save-outline" /> {t('Save')}
       </button>
     </fieldset>
   );
@@ -220,21 +221,21 @@ export function NodePanel({
     }), [flows, desc.key, describe]);
 
   return (
-    <aside className="nsc-panel" aria-label={`Details zu ${desc.name}`}>
+    <aside className="nsc-panel" aria-label={t('Details of {name}', { name: desc.name })}>
       <div className="nsc-panel-head nsc-node-panel-head" style={{ ['--nsc-status' as string]: statusColorVar(desc.status?.color) }}>
         <span className="nsc-panel-icon"><i className={`mdi ${NODE_ICONS[desc.type]}`} /></span>
         <div className="flex-grow-1 min-w-0">
-          <div className="small text-muted text-uppercase" title={TYPE_HINTS[desc.type]}>{NODE_TYPE_LABELS[desc.type]}</div>
+          <div className="small text-muted text-uppercase" title={t(TYPE_HINTS[desc.type])}>{NODE_TYPE_LABELS[desc.type]}</div>
           <h6 className="mb-0 text-truncate" title={desc.name}>{desc.name}</h6>
         </div>
-        <button type="button" className="btn-close" aria-label="Schließen" onClick={onClose} />
+        <button type="button" className="btn-close" aria-label={t('Close')} onClick={onClose} />
       </div>
 
       {canEditObject && (
         <div className="nsc-panel-tabs">
-          <button type="button" className={tab === 'info' ? 'active' : ''} onClick={() => setTab('info')}>Übersicht</button>
+          <button type="button" className={tab === 'info' ? 'active' : ''} onClick={() => setTab('info')}>{t('Overview')}</button>
           <button type="button" className={tab === 'edit' ? 'active' : ''} onClick={() => setTab('edit')}>
-            <i className="mdi mdi-pencil" /> Bearbeiten
+            <i className="mdi mdi-pencil" /> {t('Edit')}
           </button>
         </div>
       )}
@@ -246,7 +247,7 @@ export function NodePanel({
             : <ApplicationEditor desc={desc} onChanged={onChanged} />
         ) : (
           <>
-            <div className="nsc-type-hint">{TYPE_HINTS[desc.type]}</div>
+            <div className="nsc-type-hint">{t(TYPE_HINTS[desc.type])}</div>
             <dl className="nsc-facts">
               {desc.status && (
                 <>
@@ -258,7 +259,7 @@ export function NodePanel({
                 <>
                   <dt>Ports</dt>
                   <dd>{desc.service.protocol_label} {desc.service.ports.join(', ')}</dd>
-                  <dt>Läuft auf</dt>
+                  <dt>{t('Runs on')}</dt>
                   <dd>{desc.service.parent_name || '–'}</dd>
                 </>
               )}
@@ -283,41 +284,41 @@ export function NodePanel({
 
             <div className="nsc-panel-actions">
               <a className="btn btn-sm btn-outline-primary" href={desc.url} target="_blank" rel="noreferrer">
-                <i className="mdi mdi-open-in-new" /> In NetBox öffnen
+                <i className="mdi mdi-open-in-new" /> {t('Open in NetBox')}
               </a>
               {!readOnly && (
-                <a className="btn btn-sm btn-outline-secondary" href={editUrl(desc)} title="Öffnet das NetBox-Formular und kehrt danach hierher zurück">
-                  <i className="mdi mdi-pencil-outline" /> Alle Felder bearbeiten
+                <a className="btn btn-sm btn-outline-secondary" href={editUrl(desc)} title={t('Opens the NetBox form and returns here afterwards')}>
+                  <i className="mdi mdi-pencil-outline" /> {t('Edit all fields')}
                 </a>
               )}
               {canEditObject && (
                 <button type="button" className="btn btn-sm btn-primary" onClick={() => setTab('edit')}>
-                  <i className="mdi mdi-pencil" /> Schnell bearbeiten
+                  <i className="mdi mdi-pencil" /> {t('Quick edit')}
                 </button>
               )}
               <button
                 type="button"
                 className={`btn btn-sm ${impactActive ? 'btn-danger' : 'btn-outline-danger'}`}
                 onClick={onToggleImpact}
-                title="Zeigt, was betroffen ist, wenn dieses Objekt ausfällt"
+                title={t('Shows what is affected if this object fails')}
               >
-                <i className="mdi mdi-lightning-bolt-outline" /> {impactActive ? 'Impact ausblenden' : 'Impact-Analyse'}
+                <i className="mdi mdi-lightning-bolt-outline" /> {impactActive ? t('Hide impact') : t('Impact analysis')}
               </button>
               {layoutEditable && (
-                <button type="button" className="btn btn-sm btn-outline-danger" onClick={onRemove} title="Das Objekt bleibt in NetBox erhalten">
-                  <i className="mdi mdi-close-circle-outline" /> Von dieser Canvas entfernen
+                <button type="button" className="btn btn-sm btn-outline-danger" onClick={onRemove} title={t('The object stays in NetBox')}>
+                  <i className="mdi mdi-close-circle-outline" /> {t('Remove from this canvas')}
                 </button>
               )}
               {isHost && !readOnly && perms.add_service && (
                 <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onNewService}>
-                  <i className="mdi mdi-plus" /> Service auf diesem Host
+                  <i className="mdi mdi-plus" /> {t('Service on this host')}
                 </button>
               )}
             </div>
 
-            <h6 className="nsc-panel-subtitle">Verbindungen auf dieser Canvas</h6>
+            <h6 className="nsc-panel-subtitle">{t('Connections on this canvas')}</h6>
             {connections.length === 0 ? (
-              <div className="text-muted small mb-2">Keine.</div>
+              <div className="text-muted small mb-2">{t('None.')}</div>
             ) : (
               <div className="list-group list-group-flush mb-2">
                 {connections.map(({ flow, outgoing, otherName }) => (
@@ -334,14 +335,14 @@ export function NodePanel({
             )}
             {!readOnly && (perms.add_connection || perms.change_service) && (
               <div className="nsc-hint">
-                <i className="mdi mdi-gesture-tap-hold" /> Neue Verbindung: am Punkt rechts des Knotens ziehen und auf einem anderen Knoten loslassen.
+                <i className="mdi mdi-gesture-tap-hold" /> {t('New connection: drag from the dot on the right of the node and drop it on another node.')}
               </div>
             )}
 
             {layoutEditable && (
               <div className="nsc-hint mt-2">
-                <i className="mdi mdi-information-outline" /> „Entfernen“ (oder Taste Entf) nimmt den Knoten nur von
-                dieser Canvas. Löschen in NetBox geht über „Alle Felder bearbeiten“ → Delete.
+                <i className="mdi mdi-information-outline" />{' '}
+                {t('"Remove" (or the Del key) only takes the node off this canvas. To delete it in NetBox, use "Edit all fields" → Delete.')}
               </div>
             )}
           </>

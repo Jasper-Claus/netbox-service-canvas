@@ -34,6 +34,8 @@ export interface ObjectDescriptor {
   subtitle: string;
   service?: ServiceInfo;
   application?: ApplicationInfo;
+  /** VMs only: key of the device the VM is pinned to in NetBox, if any. */
+  host_key?: string | null;
 }
 
 export interface LayoutNode {
@@ -88,8 +90,8 @@ export interface Flow {
 
 export interface RunsOn {
   id: string;
-  source: string; // service key
-  target: string; // host key
+  source: string; // service key, or VM key for a VM pinned to a device
+  target: string; // host key (device or VM)
 }
 
 export interface PartOf {
@@ -139,6 +141,8 @@ export interface EditorConfig {
   grid_size: number;
   perms: Perms;
   focus: string;
+  /** NetBox UI language of the user, e.g. "en" or "de". Older configs may not have it. */
+  language?: string;
 }
 
 /** Layout state as stored by the backend (x/y relative to the group if a node belongs to one). */

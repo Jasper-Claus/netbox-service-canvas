@@ -1,23 +1,29 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "netbox-service-canvas"
-version = "0.2.0"
+version = "0.3.0"
 description = "Interactive canvas for NetBox: which services run where, how they talk to each other and what breaks if a host fails."
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 authors = [{ name = "Jasper Claus" }]
-keywords = ["netbox", "netbox-plugin", "homelab", "service-map", "dependency-mapping", "ipam", "dcim", "diagram"]
+keywords = [
+    "netbox", "netbox-plugin", "homelab", "service-map", "dependency-mapping", "impact-analysis", "ipam", "dcim",
+    "diagram", "network-documentation",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
     "Framework :: Django",
     "Intended Audience :: System Administrators",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: JavaScript",
     "Topic :: System :: Networking",
     "Topic :: System :: Systems Administration",
 ]

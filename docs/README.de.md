@@ -1,10 +1,10 @@
-<img src="images/banner.png" alt="NetBox Service Canvas" width="100%">
-
 # 🗺️ netbox-service-canvas
 
 > 🇬🇧 English version: [README.md](../README.md)
 
-<img src="images/editor.png" alt="Der Canvas-Editor in NetBox" width="100%">
+<img src="images/demo.gif" alt="Demo: NAS auf den Canvas ziehen, Services ergänzen, Verbindung ziehen, Impact-Analyse" width="100%">
+
+Die Oberfläche folgt der NetBox-Sprache: Deutsch, wenn NetBox auf Deutsch steht, sonst Englisch.
 
 **Warum es das gibt:** Ich nutze NetBox sehr gerne. Es ist die Quelle der Wahrheit für mein ganzes Homelab. Was mir
 gefehlt hat, war der Blick auf die Service-Ebene: Welcher Dienst läuft wo, und wer redet mit wem? Deshalb habe ich mir
@@ -19,7 +19,8 @@ fließen und über welche Zwischenstationen.
 
 **Grundprinzip:** Beziehungen sind echte NetBox-Daten. Der Canvas speichert nur das Layout.
 
-- „Service läuft auf Host“ ist das Core-Feld `Service.parent` (Device oder VM).
+- „Service läuft auf Host“ ist das Core-Feld `Service.parent` (Device oder VM). „VM läuft auf Device“ ist das
+  Core-Feld `VirtualMachine.device` (optional, das Gerät im Cluster, auf dem die VM läuft).
 - „Service spricht mit Service“ ist das Plugin-Modell `ServiceConnection`, mit optionalen `ConnectionHop`s (über
   Reverse-Proxy, VRF, Tunnel, VLAN …).
 - „Service gehört zu Application“ ist das Plugin-Modell `Application` (z. B. Grafana, Paperless) mit seinen Services.
@@ -54,6 +55,8 @@ fließen und über welche Zwischenstationen.
 
 ### Screenshots
 
+![Der Canvas-Editor in NetBox](images/editor.png)
+
 | Impact-Analyse | Neuer Service mit Application |
 |---|---|
 | ![Impact-Analyse](images/impact.png) | ![Neuer Service](images/new-service.png) |
@@ -73,7 +76,7 @@ gleich mit entstehen oder einer bestehenden zugeordnet werden.
 - **Knoten** zeigen Icon, Name, Primär-IP bzw. Protokoll und Ports (Applications: Version und URL). Die Statusfarbe ist die des Hosts;
   Services übernehmen sie von ihrem Parent.
 - **Kanten** werden aus den Daten abgeleitet:
-  - gestrichelt grau: „läuft auf“ (Service → Host)
+  - gestrichelt grau: „läuft auf“ (Service → Host, VM → Device)
   - lila gepunktet: „gehört zu“ (Service → Application)
   - farbig: Datenfluss. Grün bedeutet aktiv, gestrichelt cyan geplant, gepunktet grau deaktiviert. Pfeile zeigen die
     Richtung, das Label Protokoll, Port und Daten.
@@ -85,8 +88,8 @@ gleich mit entstehen oder einer bestehenden zugeordnet werden.
 - **Knoten-Panel** (Klick auf einen Knoten): Details, Verbindungen auf der Canvas, „In NetBox öffnen“, „Alle Felder
   bearbeiten“ (NetBox-Formular, danach zurück zum Editor), Schnellbearbeitung für Services und Applications,
   Impact-Analyse und „Von dieser Canvas entfernen“.
-- **Impact-Analyse**: Was fällt aus, wenn dieses Objekt ausfällt? Rot: fällt mit aus (Services auf dem Host,
-  Applications dieser Services). Orange: abhängig betroffen (wer Daten an ein ausgefallenes Objekt sendet, transitiv;
+- **Impact-Analyse**: Was fällt aus, wenn dieses Objekt ausfällt? Rot: fällt mit aus (VMs auf dem Device,
+  Services auf dem Host, Applications dieser Services). Orange: abhängig betroffen (wer Daten an ein ausgefallenes Objekt sendet, transitiv;
   bidirektionale Flüsse in beide Richtungen, deaktivierte werden ignoriert). Alles andere wird ausgegraut.
 - **Notizen**: Haftnotizen auf der Canvas, Doppelklick zum Schreiben, Farbe und Größe änderbar.
 - **Entfernen**: Ein markierter Knoten zeigt oben den Button „Entfernen“ (oder Taste Entf). Er verschwindet nur von
@@ -117,11 +120,16 @@ gleich mit entstehen oder einer bestehenden zugeordnet werden.
   Backup, Installation, `collectstatic` ohne `--clear`, Update und Deinstallation.
 - **Test-/Entwicklungsumgebung auf einer Ubuntu-VM:** siehe [dev/README.md](../dev/README.md).
 
-Kurzfassung für eine bestehende Installation:
+Kurzfassung: Das Paket liegt auf PyPI.
+
+```bash
+# klassische Installation, im NetBox-venv
+pip install netbox-service-canvas
+```
 
 ```text
-# plugin_requirements.txt
-netbox-service-canvas @ https://github.com/Jasper-Claus/netbox-service-canvas/archive/refs/tags/v0.2.0.tar.gz
+# netbox-docker: plugin_requirements.txt
+netbox-service-canvas
 ```
 
 ```python

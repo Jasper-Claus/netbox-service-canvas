@@ -90,6 +90,8 @@ def describe(obj, label=None):
         data['status'] = _status(obj)
         data['primary_ip'] = _primary_ip(obj)
         data['subtitle'] = str(obj.cluster) if obj.cluster_id else ''
+        # The device the VM is pinned to (optional in NetBox), used for "runs on" and impact analysis
+        data['host_key'] = make_key('dcim.device', obj.device_id) if obj.device_id else None
     elif label == 'ipam.service':
         parent = obj.parent
         parent_label = obj.parent_object_type.app_label + '.' + obj.parent_object_type.model
@@ -176,7 +178,7 @@ def connection_data(conn):
 def build_edges(user, node_keys, descriptors):
     """
     Derive edges between the given nodes:
-      * runs_on: service -> its parent device/VM (if both are present)
+      * runs_on: service -> its parent device/VM, and VM -> the device it is pinned to (if both are present)
       * part_of: service -> application it belongs to (if both are present)
       * flow:    every ServiceConnection whose source and target are both present
     """
@@ -187,6 +189,9 @@ def build_edges(user, node_keys, descriptors):
         service = desc.get('service')
         if service and service['parent_key'] in present:
             runs_on.append({'id': f'runs_on:{key}', 'source': key, 'target': service['parent_key']})
+        host_key = desc.get('host_key')
+        if host_key and host_key in present:
+            runs_on.append({'id': f'runs_on:{key}', 'source': key, 'target': host_key})
         application = desc.get('application')
         if application:
             for service_key in application['service_keys']:
@@ -207,6 +212,7 @@ def missing_keys(user, node_keys):
     """
     Objects related to the nodes of a canvas that are not on it yet:
       * services running on devices/VMs of the canvas
+      * VMs pinned to devices of the canvas, and the devices of VMs on the canvas
       * parents of services on the canvas
       * services of applications on the canvas, and applications of services on the canvas
       * the other endpoint of every connection touching an object on the canvas
@@ -223,6 +229,19 @@ def missing_keys(user, node_keys):
                 parent_object_type=ct, parent_object_id__in=pks
             ).values_list('pk', flat=True):
                 found.add(make_key('ipam.service', pk))
+
+    device_pks = keys_by_label.get('dcim.device')
+    if device_pks:
+        for pk in VirtualMachine.objects.restrict(user, 'view').filter(
+            device__in=device_pks
+        ).values_list('pk', flat=True):
+            found.add(make_key('virtualization.virtualmachine', pk))
+    vm_pks = keys_by_label.get('virtualization.virtualmachine')
+    if vm_pks:
+        for device_id in VirtualMachine.objects.filter(
+            pk__in=vm_pks, device__isnull=False
+        ).values_list('device_id', flat=True):
+            found.add(make_key('dcim.device', device_id))
 
     service_pks = keys_by_label.get('ipam.service')
     if service_pks:

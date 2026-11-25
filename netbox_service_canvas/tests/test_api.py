@@ -6,6 +6,7 @@ from core.models import ObjectChange
 from ipam.models import VRF
 from users.models import ObjectPermission
 from utilities.testing import APITestCase, APIViewTestCases
+from virtualization.models import VirtualMachine
 
 from ..models import Application, Canvas, CanvasGroup, CanvasNode, CanvasNote, ConnectionHop, ServiceConnection
 from .utils import create_base_objects, create_connection
@@ -468,3 +469,53 @@ class ApplicationGraphAPITest(APITestCase):
             f"dcim.device:{self.o['device2'].pk}",     # parent of grafana
             f"ipam.service:{self.o['speedtest'].pk}",  # connected to the application
         })
+
+
+class VirtualMachineHostGraphAPITest(APITestCase):
+    """
+    A VM pinned to a device (VirtualMachine.device) "runs on" that device: edge, descriptor and "add missing".
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.o = create_base_objects()
+        # Pin vm1 to device2 (bypasses the cluster check of VirtualMachine.clean(), irrelevant here)
+        VirtualMachine.objects.filter(pk=cls.o['vm1'].pk).update(device=cls.o['device2'])
+        cls.vm = f"virtualization.virtualmachine:{cls.o['vm1'].pk}"
+        cls.device = f"dcim.device:{cls.o['device2'].pk}"
+
+    def grant_view(self):
+        self.add_permissions(
+            'netbox_service_canvas.view_canvas', 'netbox_service_canvas.view_serviceconnection',
+            'dcim.view_device', 'ipam.view_service', 'virtualization.view_virtualmachine',
+        )
+
+    def canvas_with(self, *objects):
+        canvas = Canvas.objects.create(name=f'Canvas {Canvas.objects.count() + 1}')
+        for obj in objects:
+            CanvasNode.objects.create(canvas=canvas, object=obj, x=0, y=0)
+        return canvas
+
+    def get(self, canvas, action):
+        url = reverse(f'{NAMESPACE}-api:canvas-{action}', kwargs={'pk': canvas.pk})
+        response = self.client.get(url, **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        return response.data
+
+    def test_graph_runs_on_device(self):
+        self.grant_view()
+        data = self.get(self.canvas_with(self.o['device2'], self.o['vm1']), 'graph')
+        self.assertEqual(data['objects'][self.vm]['host_key'], self.device)
+        self.assertEqual(data['edges']['runs_on'], [
+            {'id': f'runs_on:{self.vm}', 'source': self.vm, 'target': self.device},
+        ])
+
+    def test_missing_adds_vms_of_device(self):
+        self.grant_view()
+        data = self.get(self.canvas_with(self.o['device2']), 'missing')
+        self.assertEqual(set(data['objects']), {self.vm, f"ipam.service:{self.o['grafana'].pk}"})
+
+    def test_missing_adds_device_of_vm(self):
+        self.grant_view()
+        data = self.get(self.canvas_with(self.o['vm1']), 'missing')
+        self.assertEqual(set(data['objects']), {self.device, f"ipam.service:{self.o['prometheus'].pk}"})

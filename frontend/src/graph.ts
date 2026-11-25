@@ -494,7 +494,7 @@ export function applySaveResult(
 // ---------------------------------------------------------------------------------------------------------------------
 
 /**
- * Positions for nodes that are added without an explicit drop position ("Fehlende ergänzen"): services go below
+ * Positions for nodes that are added without an explicit drop position ("Add missing"): services go below
  * their parent if it is on the canvas, everything else into a row below the existing content.
  */
 export function placeNew(
@@ -557,7 +557,8 @@ export interface Impact {
 
 /**
  * "What breaks if <root> fails?" – evaluated on the edges known to the canvas.
- *   1. Structural failure: host -> services running on it -> applications made of those services.
+ *   1. Structural failure: device -> VMs pinned to it -> services running on them -> applications made of those
+ *      services (everything connected by "runs on" / "part of" edges).
  *   2. Dependents: whoever sends data to a failed object loses that dependency (and so on, transitively).
  */
 export function computeImpact(root: string, edges: GraphEdges): Impact {

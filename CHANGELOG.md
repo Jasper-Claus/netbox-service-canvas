@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
 
+## [0.3.0] – 2026-11-25
+
+### Added
+- **English user interface.** The editor follows the NetBox language setting: German when NetBox is set to German,
+  English otherwise. New languages only need one dictionary file (`frontend/src/i18n.<lang>.ts`).
+- **Install from PyPI**: `pip install netbox-service-canvas`. Releases are published automatically from GitHub
+  (Trusted Publishing, no stored token).
+- **VMs run on their device**: a VM pinned to a device (NetBox field *Device*) gets a "runs on" edge to it. The
+  impact analysis now cascades from a hypervisor to its VMs, their services and applications. *Add missing* adds the
+  VMs of a device and the device of a VM.
+
 ## [0.2.0] – 2026-11-25
 
 ### Added
@@ -33,5 +44,6 @@ All notable changes to this project are documented here. The format follows
 - Initial release: `ServiceConnection`, `ConnectionHop`, canvases with groups and nodes, interactive editor (drag &
   drop, edge drawing, auto layout, autosave, PNG/SVG export), REST API, GraphQL and NetBox UI integration.
 
+[0.3.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Jasper-Claus/netbox-service-canvas/releases/tag/v0.1.0

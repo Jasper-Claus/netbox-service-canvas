@@ -331,4 +331,21 @@ describe('impact analysis', () => {
     // ... and the application of service 1 is NOT structurally failed, it only loses a dependency of its service
     expect(impact.direct.size).toBe(0);
   });
+
+  it('cascades from a hypervisor to its VMs, their services and applications', () => {
+    const VM = 'virtualization.virtualmachine:7';
+    const hosted = {
+      runs_on: [
+        { id: `runs_on:${VM}`, source: VM, target: 'dcim.device:1' },
+        { id: 'r1', source: 'ipam.service:1', target: VM },
+      ],
+      part_of: [{ id: 'p1', source: 'ipam.service:1', target: APP }],
+      flows: [{ ...flow, id: 1, source: 'ipam.service:2', target: 'ipam.service:1' }],
+    };
+    const impact = computeImpact('dcim.device:1', hosted);
+    expect([...impact.direct].sort()).toEqual([APP, 'ipam.service:1', VM].sort());
+    expect([...impact.indirect]).toEqual(['ipam.service:2']);
+    // A failing VM does not take its host down
+    expect(computeImpact(VM, hosted).direct.has('dcim.device:1')).toBe(false);
+  });
 });

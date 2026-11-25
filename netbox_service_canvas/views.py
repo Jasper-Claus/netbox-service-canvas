@@ -1,7 +1,7 @@
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Case, CharField, Count, Q, Value, When
 from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import get_language, gettext_lazy as _
 
 from dcim.models import Device
 from extras.ui.panels import CustomFieldsPanel, TagsPanel
@@ -420,6 +420,8 @@ class CanvasEditorView(generic.ObjectView):
                 'canvas': instance.get_absolute_url(),
             },
             'grid_size': get_plugin_config('netbox_service_canvas', 'grid_size'),
+            # Active NetBox UI language (user preference); the editor ships English and German texts
+            'language': get_language() or 'en',
             'perms': {
                 'change_canvas': can_change_canvas,
                 'edit_layout': can_change_canvas and all(has(f'netbox_service_canvas.{p}') for p in (

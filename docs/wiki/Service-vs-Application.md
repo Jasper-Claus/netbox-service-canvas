@@ -15,15 +15,15 @@ The short version:
 - **Simple one-port app** (e.g. AdGuard on UDP 53): a **service** is enough.
 - **Software made of several parts** (e.g. Paperless = web UI + Postgres + Redis, maybe on different hosts): create
   one **application** and attach all its services. On the canvas it appears as one node, linked to its services by
-  dotted purple "gehört zu" (belongs to) lines.
+  dotted purple "belongs to" lines.
 
 ## In the editor
 
-The **"Neuer Service"** dialog has an *Application (optional)* section:
+The **"New service"** dialog has an *Application (optional)* section:
 
-- **"Keine"** creates just the service.
-- **"Neue Application"** creates the application in the same step.
-- **"Zu bestehender hinzufügen"** attaches the service to an existing application.
+- **"None"** creates just the service.
+- **"New application"** creates the application in the same step.
+- **"Add to existing"** attaches the service to an existing application.
 
 ![New service dialog](https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/new-service.png)
 

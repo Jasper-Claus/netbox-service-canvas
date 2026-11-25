@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { BriefObject } from '../api';
 import { useEditor } from '../context';
 import { APPLICATION_LABEL, makeKey } from '../graph';
+import { t } from '../i18n';
 
 export const DRAG_MIME = 'application/x-nsc-object-key';
 
@@ -63,7 +64,7 @@ export function Sidebar({ placed, onAdd, onNewService, onNewApplication, onAddNo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [help, setHelp] = useState(false);
-  const icon = TYPES.find((t) => t.label === type)?.icon ?? 'mdi-shape-outline';
+  const icon = TYPES.find((ty) => ty.label === type)?.icon ?? 'mdi-shape-outline';
 
   useEffect(() => {
     let cancelled = false;
@@ -95,18 +96,18 @@ export function Sidebar({ placed, onAdd, onNewService, onNewApplication, onAddNo
   return (
     <aside className="nsc-sidebar">
       <div className="nsc-sidebar-head">
-        <div className="nsc-type-grid" role="tablist" aria-label="Objekttyp">
-          {TYPES.map((t) => (
+        <div className="nsc-type-grid" role="tablist" aria-label={t('Object type')}>
+          {TYPES.map((ty) => (
             <button
-              key={t.label}
+              key={ty.label}
               type="button"
               role="tab"
-              aria-selected={type === t.label}
-              className={type === t.label ? 'active' : ''}
-              onClick={() => setType(t.label)}
+              aria-selected={type === ty.label}
+              className={type === ty.label ? 'active' : ''}
+              onClick={() => setType(ty.label)}
             >
-              <i className={`mdi ${t.icon}`} />
-              <span>{t.title}</span>
+              <i className={`mdi ${ty.icon}`} />
+              <span>{t(ty.title)}</span>
             </button>
           ))}
         </div>
@@ -115,16 +116,16 @@ export function Sidebar({ placed, onAdd, onNewService, onNewApplication, onAddNo
           <input
             type="search"
             className="form-control"
-            placeholder="Suchen…"
+            placeholder={t('Search…')}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
         </div>
-        {canEdit && <div className="nsc-sidebar-hint">Auf die Fläche ziehen oder mit <i className="mdi mdi-plus" /> hinzufügen.</div>}
+        {canEdit && <div className="nsc-sidebar-hint">{t('Drag onto the canvas or add with')} <i className="mdi mdi-plus" /></div>}
       </div>
       <div className="nsc-sidebar-list">
         {error && <div className="text-danger small p-2">{error}</div>}
-        {!error && !loading && results.length === 0 && <div className="text-muted small p-3 text-center">Keine Treffer</div>}
+        {!error && !loading && results.length === 0 && <div className="text-muted small p-3 text-center">{t('No results')}</div>}
         {results.map((r) => {
           const key = makeKey(type, r.id);
           const isPlaced = placed.has(key);
@@ -139,7 +140,7 @@ export function Sidebar({ placed, onAdd, onNewService, onNewApplication, onAddNo
                 e.dataTransfer.setData(DRAG_MIME, key);
                 e.dataTransfer.effectAllowed = 'move';
               }}
-              title={isPlaced ? 'Bereits auf der Canvas' : r.display}
+              title={isPlaced ? t('Already on the canvas') : r.display}
             >
               <span className="nsc-sidebar-item-icon"><i className={`mdi ${icon}`} /></span>
               <div className="nsc-sidebar-item-text">
@@ -147,10 +148,10 @@ export function Sidebar({ placed, onAdd, onNewService, onNewApplication, onAddNo
                 {sub && <div className="small text-muted text-truncate">{sub}</div>}
               </div>
               {isPlaced ? (
-                <i className="mdi mdi-check-circle text-success" title="Bereits auf der Canvas" />
+                <i className="mdi mdi-check-circle text-success" title={t('Already on the canvas')} />
               ) : (
                 canEdit && (
-                  <button type="button" className="btn btn-sm btn-ghost-primary nsc-sidebar-add" onClick={() => onAdd(key)} title="Zur Canvas hinzufügen">
+                  <button type="button" className="btn btn-sm btn-ghost-primary nsc-sidebar-add" onClick={() => onAdd(key)} title={t('Add to canvas')}>
                     <i className="mdi mdi-plus" />
                   </button>
                 )
@@ -160,36 +161,34 @@ export function Sidebar({ placed, onAdd, onNewService, onNewApplication, onAddNo
         })}
         {count > results.length && (
           <div className="text-muted small p-2 text-center">
-            {results.length} von {count} – Suche verfeinern
+            {t('{shown} of {count}, refine your search', { shown: results.length, count })}
           </div>
         )}
       </div>
       {(showDeviceButton || showVmButton || showServiceButton || showAppButton || showNoteButton) && (
         <div className="nsc-sidebar-foot">
           <div className="nsc-sidebar-foot-title">
-            Neu anlegen
+            {t('Create new')}
             <button
               type="button"
               className="nsc-help-toggle"
               aria-expanded={help}
               onClick={() => setHelp((h) => !h)}
-              title="Was ist der Unterschied?"
+              title={t('What is the difference?')}
             >
               <i className="mdi mdi-help-circle-outline" />
             </button>
           </div>
           {help && (
             <div className="nsc-help">
-              <p><i className="mdi mdi-server" /> <strong>Device / VM</strong> – die Maschine (z. B. <em>nas</em>).</p>
+              <p><i className="mdi mdi-server" /> <strong>Device / VM</strong>: {t('the machine, e.g. nas.')}</p>
               <p>
-                <i className="mdi mdi-cog-outline" /> <strong>Service</strong> – ein Port auf genau einem Host
-                (z. B. <em>grafana, TCP 3000 auf nas</em>). Das ist das NetBox-Objekt „Service“.
+                <i className="mdi mdi-cog-outline" /> <strong>Service</strong>:{' '}
+                {t('one port on exactly one host, e.g. grafana, TCP 3000 on nas. This is the NetBox object "Service".')}
               </p>
               <p>
-                <i className="mdi mdi-apps" /> <strong>Application</strong> – die Software als Ganzes und optional
-                (z. B. <em>Grafana</em> = Web-UI-Service + Datenbank-Service, evtl. auf mehreren Hosts).
-                Für einfache Fälle reicht ein Service; beim Anlegen eines Service kann die Application gleich mit
-                entstehen.
+                <i className="mdi mdi-apps" /> <strong>Application</strong>:{' '}
+                {t('the software as a whole, optional. E.g. Grafana = web UI service + database service, possibly on several hosts. For simple cases a service is enough; you can create the application together with the service.')}
               </p>
             </div>
           )}
@@ -200,7 +199,7 @@ export function Sidebar({ placed, onAdd, onNewService, onNewApplication, onAddNo
                 href={`${netboxBase}${CORE_ADD_PAGES['dcim.device'].path}`}
                 target="_blank"
                 rel="noreferrer"
-                title="Öffnet das NetBox-Formular in einem neuen Tab. Danach hier suchen und hineinziehen."
+                title={t('Opens the NetBox form in a new tab. Then search for it here and drag it in.')}
               >
                 <i className="mdi mdi-server" /> Device <i className="mdi mdi-open-in-new small" />
               </a>
@@ -211,24 +210,24 @@ export function Sidebar({ placed, onAdd, onNewService, onNewApplication, onAddNo
                 href={`${netboxBase}${CORE_ADD_PAGES['virtualization.virtualmachine'].path}`}
                 target="_blank"
                 rel="noreferrer"
-                title="Öffnet das NetBox-Formular in einem neuen Tab. Danach hier suchen und hineinziehen."
+                title={t('Opens the NetBox form in a new tab. Then search for it here and drag it in.')}
               >
                 <i className="mdi mdi-monitor" /> VM <i className="mdi mdi-open-in-new small" />
               </a>
             )}
             {showServiceButton && (
-              <button type="button" className="btn btn-outline-primary" onClick={onNewService} title="Port/Protokoll auf einem Host">
+              <button type="button" className="btn btn-outline-primary" onClick={onNewService} title={t('Port/protocol on a host')}>
                 <i className="mdi mdi-cog-outline" /> Service
               </button>
             )}
             {showAppButton && (
-              <button type="button" className="btn btn-outline-primary" onClick={onNewApplication} title="Software, die aus einem oder mehreren Services besteht">
+              <button type="button" className="btn btn-outline-primary" onClick={onNewApplication} title={t('Software made of one or more services')}>
                 <i className="mdi mdi-apps" /> Application
               </button>
             )}
             {showNoteButton && (
               <button type="button" className="btn btn-outline-secondary" onClick={onAddNote}>
-                <i className="mdi mdi-note-outline" /> Notiz
+                <i className="mdi mdi-note-outline" /> {t('Note')}
               </button>
             )}
           </div>

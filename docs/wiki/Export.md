@@ -10,6 +10,6 @@ The toolbar offers three formats. Every export contains the **whole canvas**, wh
 
 Tips:
 
-- Switch to **"Nur Ansicht"** before exporting so the image has no edit handles.
+- Switch to **"View only"** before exporting so the image has no edit handles.
 - PNG and SVG use NetBox's current light or dark theme. The PDF is always printed on a white background.
 - Large canvases are scaled to fit one A4 page. For huge maps, split them into several canvases, e.g. one per site.

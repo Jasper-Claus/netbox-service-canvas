@@ -1,4 +1,4 @@
-// Mirrors netbox_service_canvas/choices.py
+// Mirrors netbox_service_canvas/choices.py. Labels are English source texts; translate them with t() when rendering.
 export const PROTOCOLS: Array<[string, string]> = [
   ['tcp', 'TCP'],
   ['udp', 'UDP'],
@@ -12,8 +12,8 @@ export const PROTOCOLS: Array<[string, string]> = [
 ];
 
 export const DIRECTIONS: Array<[string, string]> = [
-  ['uni', 'Unidirektional (Quelle → Ziel)'],
-  ['bi', 'Bidirektional'],
+  ['uni', 'Unidirectional (source → target)'],
+  ['bi', 'Bidirectional'],
 ];
 
 export const STATUSES: Array<[string, string]> = [
@@ -39,14 +39,14 @@ export const SERVICE_TRANSPORTS: Array<[string, string]> = [
 export const HOP_TYPES = [
   { label: 'ipam.service', title: 'Service' },
   { label: 'dcim.interface', title: 'Interface' },
-  { label: 'virtualization.vminterface', title: 'VM-Interface' },
+  { label: 'virtualization.vminterface', title: 'VM interface' },
   { label: 'ipam.vlan', title: 'VLAN' },
   { label: 'ipam.vrf', title: 'VRF' },
   { label: 'ipam.prefix', title: 'Prefix' },
-  { label: 'ipam.ipaddress', title: 'IP-Adresse' },
+  { label: 'ipam.ipaddress', title: 'IP address' },
   { label: 'vpn.tunnel', title: 'Tunnel' },
   { label: 'dcim.device', title: 'Device' },
-  { label: 'virtualization.virtualmachine', title: 'Virtuelle Maschine' },
+  { label: 'virtualization.virtualmachine', title: 'Virtual machine' },
 ];
 
 /** Guess an application protocol from a service port. */

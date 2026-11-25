@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { BriefObject } from '../api';
 import { useEditor } from '../context';
+import { t } from '../i18n';
 
 export interface PickerType {
   label: string; // "app.model"
@@ -53,16 +54,16 @@ function TypeSwitch({ types, value, onChange, idPrefix }: {
   if (types.length <= 4) {
     return (
       <div className="nsc-segmented mb-2" role="tablist">
-        {types.map((t) => (
+        {types.map((ty) => (
           <button
-            key={t.label}
+            key={ty.label}
             type="button"
             role="tab"
-            aria-selected={value === t.label}
-            className={value === t.label ? 'active' : ''}
-            onClick={() => onChange(t.label)}
+            aria-selected={value === ty.label}
+            className={value === ty.label ? 'active' : ''}
+            onClick={() => onChange(ty.label)}
           >
-            {t.icon && <i className={`mdi ${t.icon}`} />} {t.title}
+            {ty.icon && <i className={`mdi ${ty.icon}`} />} {t(ty.title)}
           </button>
         ))}
       </div>
@@ -75,8 +76,8 @@ function TypeSwitch({ types, value, onChange, idPrefix }: {
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
-      {types.map((t) => (
-        <option key={t.label} value={t.label}>{t.title}</option>
+      {types.map((ty) => (
+        <option key={ty.label} value={ty.label}>{t(ty.title)}</option>
       ))}
     </select>
   );
@@ -90,7 +91,7 @@ function SearchInput({ value, onChange, id }: { value: string; onChange: (v: str
         id={id}
         type="search"
         className="form-control"
-        placeholder="Suchen…"
+        placeholder={t('Search…')}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
@@ -140,7 +141,7 @@ export function ObjectPicker({ types, value, onChange, idPrefix, compact }: Prop
             {value.id === r.id && <i className="mdi mdi-check" />}
           </button>
         ))}
-        {!loading && !error && results.length === 0 && <div className="nsc-picker-empty">Keine Treffer</div>}
+        {!loading && !error && results.length === 0 && <div className="nsc-picker-empty">{t('No results')}</div>}
         {error && <div className="nsc-picker-empty text-danger">{error}</div>}
       </div>
     </div>
@@ -171,7 +172,7 @@ export function MultiObjectPicker({ label, value, onChange, idPrefix }: MultiPro
           {value.map((v) => (
             <span key={v.id} className="nsc-chip">
               {v.display}
-              <button type="button" aria-label={`${v.display} entfernen`} onClick={() => toggle(v)}>
+              <button type="button" aria-label={t('Remove {name}', { name: v.display })} onClick={() => toggle(v)}>
                 <i className="mdi mdi-close" />
               </button>
             </span>
@@ -193,7 +194,7 @@ export function MultiObjectPicker({ label, value, onChange, idPrefix }: MultiPro
             <span className="text-truncate flex-grow-1">{r.display}</span>
           </button>
         ))}
-        {!loading && !error && results.length === 0 && <div className="nsc-picker-empty">Keine Treffer</div>}
+        {!loading && !error && results.length === 0 && <div className="nsc-picker-empty">{t('No results')}</div>}
         {error && <div className="nsc-picker-empty text-danger">{error}</div>}
       </div>
     </div>

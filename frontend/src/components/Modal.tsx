@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { t } from '../i18n';
 
 interface Props {
   title: string;
@@ -32,7 +33,7 @@ export function Modal({ title, icon, subtitle, size = 'md', onClose, children, f
             <h5 className="modal-title">{title}</h5>
             {subtitle && <div className="nsc-modal-subtitle">{subtitle}</div>}
           </div>
-          <button type="button" className="btn-close" aria-label="Schließen" onClick={onClose} />
+          <button type="button" className="btn-close" aria-label={t('Close')} onClick={onClose} />
         </div>
         <div className="modal-body nsc-modal-body">{children}</div>
         {footer && <div className="modal-footer nsc-modal-footer">{footer}</div>}

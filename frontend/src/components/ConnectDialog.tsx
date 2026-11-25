@@ -5,6 +5,7 @@ import { useEditor } from '../context';
 import { parseKey } from '../graph';
 import type { ObjectDescriptor } from '../types';
 import { Modal } from './Modal';
+import { t } from '../i18n';
 
 interface Props {
   source: ObjectDescriptor;
@@ -50,15 +51,15 @@ export function ConnectDialog({ source, target, onClose, onDone }: Props) {
       if (mode === 'runs_on' && pair) {
         const host = parseKey(pair.host.key)!;
         await api.setServiceParent(pair.service.id, host.label, host.id);
-        onDone({ message: `${pair.service.name} läuft jetzt auf ${pair.host.name}.` });
+        onDone({ message: t('{service} now runs on {host}.', { service: pair.service.name, host: pair.host.name }) });
       } else {
         const s = parseKey(source.key)!;
-        const t = parseKey(target.key)!;
+        const tg = parseKey(target.key)!;
         const created = await api.createConnection({
           source_type: s.label,
           source_id: s.id,
-          target_type: t.label,
-          target_id: t.id,
+          target_type: tg.label,
+          target_id: tg.id,
           protocol,
           port: portNumber,
           direction,
@@ -66,7 +67,7 @@ export function ConnectDialog({ source, target, onClose, onDone }: Props) {
           data_description: dataDescription.trim(),
           description: description.trim(),
         });
-        onDone({ connectionId: created.id, message: 'Verbindung angelegt.' });
+        onDone({ connectionId: created.id, message: t('Connection created.') });
       }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
@@ -78,18 +79,18 @@ export function ConnectDialog({ source, target, onClose, onDone }: Props) {
 
   return (
     <Modal
-      title="Verbindung anlegen"
+      title={t('Create connection')}
       onClose={onClose}
       footer={(
         <>
-          <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Abbrechen</button>
+          <button type="button" className="btn btn-outline-secondary" onClick={onClose}>{t('Cancel')}</button>
           <button
             type="button"
             className="btn btn-primary"
             disabled={busy || (mode === 'flow' ? !canFlow || !portValid : !canRunsOn)}
             onClick={submit}
           >
-            {busy ? 'Speichere…' : 'Anlegen'}
+            {busy ? t('Saving…') : t('Create')}
           </button>
         </>
       )}
@@ -108,7 +109,7 @@ export function ConnectDialog({ source, target, onClose, onDone }: Props) {
             onChange={() => setMode('flow')}
           />
           <label className="form-check-label" htmlFor="nsc-mode-flow">
-            Datenfluss <span className="text-muted">– legt eine Service-Verbindung an</span>
+            {t('Data flow')} <span className="text-muted">{t('creates a service connection')}</span>
           </label>
         </div>
         <div className="form-check">
@@ -121,17 +122,17 @@ export function ConnectDialog({ source, target, onClose, onDone }: Props) {
             onChange={() => setMode('runs_on')}
           />
           <label className="form-check-label" htmlFor="nsc-mode-runs-on">
-            Läuft auf <span className="text-muted">– setzt den Parent des Services</span>
+            {t('Runs on')} <span className="text-muted">{t('sets the parent of the service')}</span>
           </label>
-          {!pair && <div className="form-text">Nur zwischen einem Service und einem Device/einer VM möglich.</div>}
+          {!pair && <div className="form-text">{t('Only possible between a service and a device or VM.')}</div>}
         </div>
       </div>
 
       {mode === 'runs_on' && pair && (
         <div className={`alert ${parentChanges ? 'alert-warning' : 'alert-info'}`}>
           {parentChanges
-            ? `Der Service „${pair.service.name}“ läuft bisher auf „${pair.service.service?.parent_name}“ und wird auf „${pair.host.name}“ verschoben.`
-            : `Der Service „${pair.service.name}“ wird „${pair.host.name}“ zugeordnet.`}
+            ? t('The service "{service}" currently runs on "{old}" and will be moved to "{host}".', { service: pair.service.name, old: pair.service.service?.parent_name ?? '', host: pair.host.name })
+            : t('The service "{service}" will be assigned to "{host}".', { service: pair.service.name, host: pair.host.name })}
         </div>
       )}
 
@@ -139,7 +140,7 @@ export function ConnectDialog({ source, target, onClose, onDone }: Props) {
         <>
           <div className="row mb-3">
             <div className="col-6">
-              <label className="form-label" htmlFor="nsc-flow-protocol">Protokoll</label>
+              <label className="form-label" htmlFor="nsc-flow-protocol">{t('Protocol')}</label>
               <select id="nsc-flow-protocol" className="form-select" value={protocol} onChange={(e) => setProtocol(e.target.value)}>
                 {PROTOCOLS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
@@ -159,34 +160,34 @@ export function ConnectDialog({ source, target, onClose, onDone }: Props) {
           </div>
           <div className="row mb-3">
             <div className="col-6">
-              <label className="form-label" htmlFor="nsc-flow-direction">Richtung</label>
+              <label className="form-label" htmlFor="nsc-flow-direction">{t('Direction')}</label>
               <select id="nsc-flow-direction" className="form-select" value={direction} onChange={(e) => setDirection(e.target.value)}>
-                {DIRECTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {DIRECTIONS.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
               </select>
             </div>
             <div className="col-6">
               <label className="form-label" htmlFor="nsc-flow-status">Status</label>
               <select id="nsc-flow-status" className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-                {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {STATUSES.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
               </select>
             </div>
           </div>
           <div className="mb-3">
-            <label className="form-label" htmlFor="nsc-flow-data">Daten</label>
+            <label className="form-label" htmlFor="nsc-flow-data">{t('Data')}</label>
             <input
               id="nsc-flow-data"
               className="form-control"
-              placeholder="z. B. Metriken, Backups, Logins"
+              placeholder={t('e.g. metrics, backups, logins')}
               maxLength={200}
               value={dataDescription}
               onChange={(e) => setDataDescription(e.target.value)}
             />
           </div>
           <div className="mb-3">
-            <label className="form-label" htmlFor="nsc-flow-description">Beschreibung</label>
+            <label className="form-label" htmlFor="nsc-flow-description">{t('Description')}</label>
             <input id="nsc-flow-description" className="form-control" maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
-          <div className="form-text">Zwischenstationen (Hops) kannst du danach im Kanten-Panel ergänzen.</div>
+          <div className="form-text">{t('You can add intermediate stations (hops) afterwards in the edge panel.')}</div>
         </>
       )}
       {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}

@@ -2,6 +2,7 @@ import { NodeResizer, NodeToolbar, Position, type NodeProps } from '@xyflow/reac
 import { memo, useEffect, useState } from 'react';
 import type { NoteNode as NoteNodeType } from '../graph';
 import { useEditor } from '../context';
+import { t } from '../i18n';
 
 export const NOTE_COLORS = ['ffe082', 'ffccbc', 'c8e6c9', 'bbdefb', 'e1bee7', 'eeeeee'];
 
@@ -25,7 +26,7 @@ function NoteNodeComponent({ id, data, selected }: NodeProps<NoteNodeType>) {
       className={`nsc-note${selected ? ' selected' : ''}`}
       style={{ ['--nsc-note-color' as string]: `#${data.color}` }}
       onDoubleClick={() => editable && setEditing(true)}
-      title={editable && !editing ? 'Doppelklick zum Bearbeiten' : undefined}
+      title={editable && !editing ? t('Double-click to edit') : undefined}
     >
       <NodeResizer
         isVisible={editable && selected}
@@ -49,10 +50,10 @@ function NoteNodeComponent({ id, data, selected }: NodeProps<NoteNodeType>) {
               onClick={() => updateNote(id, { color: c })}
             />
           ))}
-          <button type="button" className="btn btn-sm btn-ghost-secondary" title="Text bearbeiten" onClick={() => setEditing(true)}>
+          <button type="button" className="btn btn-sm btn-ghost-secondary" title={t('Edit text')} onClick={() => setEditing(true)}>
             <i className="mdi mdi-pencil" />
           </button>
-          <button type="button" className="btn btn-sm btn-ghost-danger" title="Notiz löschen" onClick={() => deleteNote(id)}>
+          <button type="button" className="btn btn-sm btn-ghost-danger" title={t('Delete note')} onClick={() => deleteNote(id)}>
             <i className="mdi mdi-trash-can-outline" />
           </button>
         </NodeToolbar>
@@ -75,7 +76,7 @@ function NoteNodeComponent({ id, data, selected }: NodeProps<NoteNodeType>) {
         />
       ) : (
         <div className="nsc-note-text">
-          {data.text || <span className="nsc-note-placeholder">{editable ? 'Doppelklick zum Schreiben…' : ''}</span>}
+          {data.text || <span className="nsc-note-placeholder">{editable ? t('Double-click to write…') : ''}</span>}
         </div>
       )}
     </div>

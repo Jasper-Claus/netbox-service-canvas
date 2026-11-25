@@ -36,19 +36,18 @@ docker compose start netbox netbox-worker
 
 ## 2. Paket eintragen: `plugin_requirements.txt`
 
-Eine Zeile ergänzen. Empfohlen ist das **Tag-Archiv**, denn dafür braucht das Image kein `git`:
+Eine Zeile ergänzen. Das Paket liegt auf [PyPI](https://pypi.org/project/netbox-service-canvas/); am besten mit
+fester Version:
 
 ```text
-netbox-service-canvas @ https://github.com/Jasper-Claus/netbox-service-canvas/archive/refs/tags/v0.2.0.tar.gz
+netbox-service-canvas==0.3.0
 ```
 
-Alternativ direkt aus Git, wenn dein `Dockerfile-Plugins` `git` installiert:
+Alternativ das Tag-Archiv von GitHub (braucht kein `git` im Image):
 
 ```text
-netbox-service-canvas @ git+https://github.com/Jasper-Claus/netbox-service-canvas.git@v0.2.0
+netbox-service-canvas @ https://github.com/Jasper-Claus/netbox-service-canvas/archive/refs/tags/v0.3.0.tar.gz
 ```
-
-> Die URL funktioniert, sobald das Repo öffentlich ist und das Tag `v0.2.0` existiert.
 
 Dein `Dockerfile-Plugins` muss nicht geändert werden. Es installiert ohnehin alles aus `plugin_requirements.txt`,
 typischerweise so:
@@ -143,7 +142,7 @@ Diese Migration in der Branch-Ansicht ausführen oder einen neuen Branch anlegen
 
 ## 7. Update
 
-1. In `plugin_requirements.txt` das Tag ändern, z. B. `v0.2.0` → `v0.3.0`.
+1. In `plugin_requirements.txt` die Version ändern, z. B. `==0.3.0` → `==0.4.0`.
 2. Vorher das Backup aus Schritt 1 machen.
 3. Dann:
 

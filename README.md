@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="docs/images/banner.png" alt="NetBox Service Canvas: interactive service map for NetBox" width="100%">
-
 # 🗺️ NetBox Service Canvas
 
 **See which services run where and how they talk to each other, right inside NetBox.**
@@ -13,18 +11,20 @@ NetBox data, not just drawn.
 [![NetBox](https://img.shields.io/badge/NetBox-4.5.x-0d6efd?logo=netbox&logoColor=white)](https://github.com/netbox-community/netbox)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776ab?logo=python&logoColor=white)](https://www.python.org/)
 [![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=black)](https://react.dev/)
-[![License](https://img.shields.io/badge/License-Apache--2.0-green)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/netbox-service-canvas?logo=pypi&logoColor=white)](https://pypi.org/project/netbox-service-canvas/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-green)](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/LICENSE)
 [![Built with AI](https://img.shields.io/badge/Built%20100%25%20with-AI-8a2be2?logo=anthropic&logoColor=white)](#-built-100-with-ai)
 [![CI](https://github.com/Jasper-Claus/netbox-service-canvas/actions/workflows/ci.yml/badge.svg)](https://github.com/Jasper-Claus/netbox-service-canvas/actions/workflows/ci.yml)
 
 [Features](#-features) · [Install](#-installation) · [How it works](#-how-it-works) · [Permissions](#-permissions) ·
 [API](#-rest-api--graphql) · [📖 Wiki](https://github.com/Jasper-Claus/netbox-service-canvas/wiki) ·
-[🇩🇪 Deutsch](docs/README.de.md)
+[🇩🇪 Deutsch](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/docs/README.de.md)
 
 </div>
 
 <p align="center">
-  <img src="docs/images/editor.png" alt="The canvas editor inside NetBox: hosts, services, applications, data flows and the node panel" width="100%">
+  <img src="https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/demo.gif" alt="Demo: drag a NAS onto the canvas, add its services, draw a connection, run the impact analysis" width="100%">
+  <br><sub>Drag a host in, let <i>Add missing</i> pull in its services, draw a connection, then ask what breaks if it fails.</sub>
 </p>
 
 ---
@@ -76,8 +76,8 @@ answer: pretty far. Issues, ideas and PRs from humans (or their AIs 😄) are ve
   service's host.
 - 🪟 **Node panel** (click any node): details, its connections, quick edit for services and applications, a link to
   the full NetBox form (with a jump back to the editor) and *remove from canvas*.
-- ⚡ **Impact analysis**: "What breaks if this box goes down?" Red marks what fails with it, orange marks everything
-  that depends on it (transitively).
+- ⚡ **Impact analysis**: "What breaks if this box goes down?" Red marks what fails with it (a hypervisor takes its
+  VMs, their services and applications down with it), orange marks everything that depends on it (transitively).
 - 📝 **Sticky notes** for maintenance windows, TODOs and explanations.
 - 🗂️ **Groups** (racks, clusters, VLANs…) with name, colour and resizing.
 - 🪄 **Auto layout** (ELK), *add missing* (pulls in related hosts, services and peers), minimap, snap to grid.
@@ -97,10 +97,14 @@ the application in the same dialog.
 
 ### 📸 Screenshots
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/editor.png" alt="The canvas editor inside NetBox: hosts, services, applications and data flows" width="100%">
+</p>
+
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/impact.png" alt="Impact analysis: truenas fails, red and orange mark everything that breaks with it"></td>
-    <td width="50%"><img src="docs/images/new-service.png" alt="Create a service and its application in one dialog"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/impact.png" alt="Impact analysis: truenas fails, red and orange mark everything that breaks with it"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/new-service.png" alt="Create a service and its application in one dialog"></td>
   </tr>
   <tr>
     <td align="center">⚡ <b>Impact analysis</b>: what breaks if <code>truenas</code> goes down?</td>
@@ -108,7 +112,7 @@ the application in the same dialog.
   </tr>
 </table>
 
-> The editor UI is currently in German. An English translation is on the roadmap.
+> The editor follows your NetBox language: English by default, German if NetBox is set to German.
 > Screenshots show a demo homelab, not real infrastructure.
 
 ---
@@ -118,11 +122,22 @@ the application in the same dialog.
 Requirements: **NetBox 4.5.x** (tested with 4.5.7) and Python 3.12+. Works with
 [netbox-docker](https://github.com/netbox-community/netbox-docker) and plain installs.
 
+**Plain install**: install the package into the NetBox virtual environment:
+
+```bash
+source /opt/netbox/venv/bin/activate
+pip install netbox-service-canvas
+```
+
+To keep it across NetBox upgrades, add `netbox-service-canvas` to `local_requirements.txt` in the NetBox root.
+
 **netbox-docker**: add the plugin to `plugin_requirements.txt`:
 
 ```text
-netbox-service-canvas @ https://github.com/Jasper-Claus/netbox-service-canvas/archive/refs/tags/v0.2.0.tar.gz
+netbox-service-canvas
 ```
+
+(Pin a version with `netbox-service-canvas==0.3.0` if you like.)
 
 Enable it in `configuration/plugins.py`:
 
@@ -137,7 +152,8 @@ PLUGINS_CONFIG = {
 }
 ```
 
-Rebuild, migrate and collect static files:
+Then migrate and collect static files (plain install: `python manage.py migrate` and
+`python manage.py collectstatic --no-input`, then restart NetBox). With netbox-docker, rebuild first:
 
 ```bash
 docker compose build --no-cache netbox && docker compose up -d
@@ -146,8 +162,8 @@ docker compose exec netbox /opt/netbox/netbox/manage.py collectstatic --no-input
 ```
 
 📖 Step-by-step guide with backup, update and uninstall (German):
-[docs/install-netbox-docker.md](docs/install-netbox-docker.md) ·
-🧪 Dev/test environment on a VM or LXC: [dev/README.md](dev/README.md)
+[docs/install-netbox-docker.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/docs/install-netbox-docker.md) ·
+🧪 Dev/test environment on a VM or LXC: [dev/README.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/dev/README.md)
 
 ---
 
@@ -208,7 +224,7 @@ cd frontend && npm ci && npm test && npm run build
 python manage.py test netbox_service_canvas
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+See [CONTRIBUTING.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/CONTRIBUTING.md) for details.
 
 ## 🗺️ Roadmap ideas
 
@@ -216,15 +232,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 - [ ] Services drawn inside their host's container
 - [ ] Live status (e.g. from monitoring) on nodes
 - [ ] Filters and search on the canvas, undo/redo
-- [ ] English UI (i18n)
-- [ ] Impact analysis follows VMs to their host device
+- [ ] More UI languages (one dictionary file each, PRs welcome)
 
 Got an idea? [Open an issue](https://github.com/Jasper-Claus/netbox-service-canvas/issues/new/choose). ⭐ Stars
 are appreciated if you find this useful!
 
 ## 📄 License
 
-[Apache-2.0](LICENSE). Not affiliated with NetBox Labs. NetBox is a trademark of NetBox Labs, Inc.
+[Apache-2.0](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/LICENSE). Not affiliated with NetBox Labs. NetBox is a trademark of NetBox Labs, Inc.
 
 ---
 

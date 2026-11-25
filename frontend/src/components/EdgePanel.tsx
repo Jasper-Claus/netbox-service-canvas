@@ -21,6 +21,7 @@ import { DIRECTIONS, HOP_TYPES, PROTOCOLS, STATUSES } from '../choices';
 import { useEditor } from '../context';
 import type { Flow, Hop, ObjectDescriptor } from '../types';
 import { ObjectPicker } from './ObjectPicker';
+import { t } from '../i18n';
 
 interface Props {
   flow: Flow;
@@ -31,7 +32,7 @@ interface Props {
   onChanged: () => void;
 }
 
-const HOP_TYPE_TITLE = Object.fromEntries(HOP_TYPES.map((t) => [t.label, t.title]));
+const HOP_TYPE_TITLE: Record<string, string> = Object.fromEntries(HOP_TYPES.map((ty) => [ty.label, ty.title]));
 
 function SortableHop({ hop, canMove, canDelete, onDelete }: {
   hop: Hop;
@@ -50,12 +51,12 @@ function SortableHop({ hop, canMove, canDelete, onDelete }: {
       style={{ transform: CSS.Transform.toString(transform), transition }}
     >
       {canMove && (
-        <span className="nsc-hop-handle" {...attributes} {...listeners} title="Ziehen zum Sortieren">
+        <span className="nsc-hop-handle" {...attributes} {...listeners} title={t('Drag to reorder')}>
           <i className="mdi mdi-drag-vertical" />
         </span>
       )}
       <div className="flex-grow-1 text-truncate">
-        <span className="badge text-bg-secondary me-1">{HOP_TYPE_TITLE[hop.object_type] ?? hop.object_type}</span>
+        <span className="badge text-bg-secondary me-1">{HOP_TYPE_TITLE[hop.object_type] ? t(HOP_TYPE_TITLE[hop.object_type]) : hop.object_type}</span>
         {hop.object?.display_url || hop.object?.url ? (
           <a href={hop.object.display_url ?? hop.object.url} target="_blank" rel="noreferrer">{hop.object.display}</a>
         ) : (
@@ -64,7 +65,7 @@ function SortableHop({ hop, canMove, canDelete, onDelete }: {
         {hop.note && <div className="small text-muted text-truncate">{hop.note}</div>}
       </div>
       {canDelete && (
-        <button type="button" className="btn btn-sm btn-ghost-danger" title="Hop entfernen" onClick={() => onDelete(hop)}>
+        <button type="button" className="btn btn-sm btn-ghost-danger" title={t('Remove hop')} onClick={() => onDelete(hop)}>
           <i className="mdi mdi-close" />
         </button>
       )}
@@ -135,7 +136,7 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
     setError(null);
     try {
       await api.updateConnection(flow.id, { ...form, port: portNumber });
-      notify('Verbindung gespeichert.', 'success');
+      notify(t('Connection saved.'), 'success');
       onChanged();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
@@ -145,11 +146,11 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
   };
 
   const remove = async () => {
-    if (!window.confirm('Diese Verbindung in NetBox löschen? Das betrifft alle Canvases.')) return;
+    if (!window.confirm(t('Delete this connection in NetBox? This affects all canvases.'))) return;
     setBusy(true);
     try {
       await api.deleteConnection(flow.id);
-      notify('Verbindung gelöscht.', 'success');
+      notify(t('Connection deleted.'), 'success');
       onChanged();
       onClose();
     } catch (e) {
@@ -206,9 +207,9 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
     <aside className="nsc-panel">
       <div className="nsc-panel-head">
         <h6 className="mb-0">
-          <a href={flow.url} target="_blank" rel="noreferrer">Verbindung #{flow.id}</a>
+          <a href={flow.url} target="_blank" rel="noreferrer">{t('Connection #{id}', { id: flow.id })}</a>
         </h6>
-        <button type="button" className="btn-close" aria-label="Schließen" onClick={onClose} />
+        <button type="button" className="btn-close" aria-label={t('Close')} onClick={onClose} />
       </div>
       <div className="nsc-panel-body">
         <p className="small mb-2">
@@ -220,7 +221,7 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
         <fieldset disabled={!canChange || busy}>
           <div className="row g-2 mb-2">
             <div className="col-7">
-              <label className="form-label small" htmlFor="nsc-edge-protocol">Protokoll</label>
+              <label className="form-label small" htmlFor="nsc-edge-protocol">{t('Protocol')}</label>
               <select id="nsc-edge-protocol" className="form-select form-select-sm" value={form.protocol} onChange={(e) => setForm({ ...form, protocol: e.target.value })}>
                 {PROTOCOLS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
@@ -238,24 +239,24 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
           </div>
           <div className="row g-2 mb-2">
             <div className="col-7">
-              <label className="form-label small" htmlFor="nsc-edge-direction">Richtung</label>
+              <label className="form-label small" htmlFor="nsc-edge-direction">{t('Direction')}</label>
               <select id="nsc-edge-direction" className="form-select form-select-sm" value={form.direction} onChange={(e) => setForm({ ...form, direction: e.target.value })}>
-                {DIRECTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {DIRECTIONS.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
               </select>
             </div>
             <div className="col-5">
               <label className="form-label small" htmlFor="nsc-edge-status">Status</label>
               <select id="nsc-edge-status" className="form-select form-select-sm" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {STATUSES.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
               </select>
             </div>
           </div>
           <div className="mb-2">
-            <label className="form-label small" htmlFor="nsc-edge-data">Daten</label>
+            <label className="form-label small" htmlFor="nsc-edge-data">{t('Data')}</label>
             <input id="nsc-edge-data" className="form-control form-control-sm" maxLength={200} value={form.data_description} onChange={(e) => setForm({ ...form, data_description: e.target.value })} />
           </div>
           <div className="mb-2">
-            <label className="form-label small" htmlFor="nsc-edge-description">Beschreibung</label>
+            <label className="form-label small" htmlFor="nsc-edge-description">{t('Description')}</label>
             <input id="nsc-edge-description" className="form-control form-control-sm" maxLength={200} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
         </fieldset>
@@ -264,20 +265,20 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
           <div className="d-flex gap-2 mb-3">
             {canChange && (
               <button type="button" className="btn btn-sm btn-primary" disabled={!dirty || !portValid || busy} onClick={save}>
-                Speichern
+                {t('Save')}
               </button>
             )}
             {canDelete && (
               <button type="button" className="btn btn-sm btn-outline-danger ms-auto" disabled={busy} onClick={remove}>
-                <i className="mdi mdi-trash-can-outline" /> Löschen
+                <i className="mdi mdi-trash-can-outline" /> {t('Delete')}
               </button>
             )}
           </div>
         )}
 
-        <h6 className="small text-uppercase text-muted">Zwischenstationen (Hops)</h6>
+        <h6 className="small text-uppercase text-muted">{t('Intermediate stations (hops)')}</h6>
         {hopError && <div className="alert alert-danger py-1 small">{hopError}</div>}
-        {hops.length === 0 && <div className="text-muted small mb-2">Keine – direkte Verbindung.</div>}
+        {hops.length === 0 && <div className="text-muted small mb-2">{t('None, direct connection.')}</div>}
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={hops.map((h) => h.id)} strategy={verticalListSortingStrategy}>
             <ol className="list-group list-group-numbered mb-2">
@@ -293,13 +294,13 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
             <ObjectPicker types={HOP_TYPES} value={newHop} onChange={setNewHop} idPrefix="nsc-hop" compact />
             <input
               className="form-control form-control-sm mt-1"
-              placeholder="Notiz (optional)"
+              placeholder={t('Note (optional)')}
               maxLength={200}
               value={newHopNote}
               onChange={(e) => setNewHopNote(e.target.value)}
             />
             <button type="button" className="btn btn-sm btn-outline-primary mt-1 w-100" disabled={newHop.id === null || addingHop} onClick={addHop}>
-              <i className="mdi mdi-plus" /> Hop anhängen
+              <i className="mdi mdi-plus" /> {t('Add hop')}
             </button>
           </div>
         )}

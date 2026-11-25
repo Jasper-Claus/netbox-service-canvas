@@ -3,6 +3,7 @@ import './styles.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { setLanguage } from './i18n';
 import type { EditorConfig } from './types';
 
 function mount() {
@@ -15,6 +16,7 @@ function mount() {
     return;
   }
   const config = JSON.parse(raw) as EditorConfig;
+  setLanguage(config.language ?? document.documentElement.lang);
   root.replaceChildren();
   createRoot(root).render(
     <StrictMode>

@@ -2,6 +2,7 @@ import { NodeResizer, NodeToolbar, Position, type NodeProps } from '@xyflow/reac
 import { memo, useState } from 'react';
 import type { GroupNode as GroupNodeType } from '../graph';
 import { useEditor } from '../context';
+import { t } from '../i18n';
 
 export const GROUP_COLORS = ['607d8b', '2196f3', '4caf50', 'ff9800', 'f44336', '9c27b0', '00bcd4', '795548'];
 
@@ -46,7 +47,7 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeType>) {
               onClick={() => updateGroup(id, { color: c })}
             />
           ))}
-          <button type="button" className="btn btn-sm btn-ghost-danger" title="Gruppe entfernen" onClick={() => deleteGroup(id)}>
+          <button type="button" className="btn btn-sm btn-ghost-danger" title={t('Remove group')} onClick={() => deleteGroup(id)}>
             <i className="mdi mdi-trash-can-outline" />
           </button>
         </NodeToolbar>
@@ -71,7 +72,7 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeType>) {
         ) : (
           <span
             onDoubleClick={() => editable && setEditing(true)}
-            title={editable ? 'Doppelklick zum Umbenennen' : undefined}
+            title={editable ? t('Double-click to rename') : undefined}
           >
             {data.name}
           </span>
