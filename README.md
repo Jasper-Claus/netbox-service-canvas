@@ -119,47 +119,72 @@ the application in the same dialog.
 
 ## 📦 Installation
 
-Requirements: **NetBox 4.5.x** (tested with 4.5.7) and Python 3.12+. Works with
-[netbox-docker](https://github.com/netbox-community/netbox-docker) and plain installs.
+Requirements: NetBox 4.5.x (tested with 4.5.7) and Python 3.12+.
 
-**Plain install**: install the package into the NetBox virtual environment:
+> [!WARNING]
+> The plugin declares support for NetBox 4.5 only. On a newer minor version (e.g. 4.6) NetBox refuses to start
+> while the plugin is enabled. Before upgrading NetBox, check for a matching plugin release, or remove
+> `netbox_service_canvas` from `PLUGINS` first.
+
+### netbox-docker
+
+All files below are in your netbox-docker folder (next to `docker-compose.yml`). New to plugins in netbox-docker?
+Create `plugin_requirements.txt`, `Dockerfile-Plugins` and `docker-compose.override.yml` first, as described in
+[Using NetBox Plugins](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins).
+
+1. Open `plugin_requirements.txt` (e.g. `nano plugin_requirements.txt`) and add this line. It goes into the file,
+   not into the terminal:
+
+   ```text
+   netbox-service-canvas
+   ```
+
+2. Open `Dockerfile-Plugins` and make sure it ends with this line. It copies the editor's JavaScript and CSS into
+   NetBox while the image is built:
+
+   ```dockerfile
+   RUN DEBUG="true" SECRET_KEY="dummydummydummydummydummydummydummydummydummydummy"        /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input
+   ```
+
+3. Open `configuration/plugins.py` and add `"netbox_service_canvas"` to your existing `PLUGINS` list. Do not
+   replace the list. If you use netbox-branching, `netbox_branching` must stay last:
+
+   ```python
+   PLUGINS = [
+       # ... your other plugins ...
+       "netbox_service_canvas",
+   ]
+   ```
+
+4. Rebuild and restart. Database migrations run automatically when the container starts:
+
+   ```bash
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+5. Check: the menu shows *Plugins → Service Canvas*. Create a canvas and open its *Editor* tab. If the editor stays
+   at "Loading canvas…", the collectstatic line from step 2 is missing (see the troubleshooting section of the
+   guide below).
+
+### Plain install (without Docker)
 
 ```bash
 source /opt/netbox/venv/bin/activate
 pip install netbox-service-canvas
+echo netbox-service-canvas >> /opt/netbox/local_requirements.txt   # keeps it across NetBox upgrades
 ```
 
-To keep it across NetBox upgrades, add `netbox-service-canvas` to `local_requirements.txt` in the NetBox root.
-
-**netbox-docker**: add the plugin to `plugin_requirements.txt`:
-
-```text
-netbox-service-canvas
-```
-
-(Pin a version with `netbox-service-canvas==0.3.0` if you like.)
-
-Enable it in `configuration/plugins.py`:
-
-```python
-PLUGINS = [
-    # ...
-    "netbox_service_canvas",
-    # "netbox_branching",  # if you use branching, keep it last
-]
-PLUGINS_CONFIG = {
-    "netbox_service_canvas": {"grid_size": 10},
-}
-```
-
-Then migrate and collect static files (plain install: `python manage.py migrate` and
-`python manage.py collectstatic --no-input`, then restart NetBox). With netbox-docker, rebuild first:
+Add `"netbox_service_canvas"` to the existing `PLUGINS` list in `/opt/netbox/netbox/netbox/configuration.py`, then:
 
 ```bash
-docker compose build --no-cache netbox && docker compose up -d
-docker compose exec netbox /opt/netbox/netbox/manage.py migrate
-docker compose exec netbox /opt/netbox/netbox/manage.py collectstatic --no-input
+cd /opt/netbox/netbox
+python manage.py migrate
+python manage.py collectstatic --no-input
+sudo systemctl restart netbox netbox-rq
 ```
+
+Optional settings (`PLUGINS_CONFIG`): `grid_size` (default `10`), the grid in pixels.
 
 📖 Step-by-step guide with backup, update and uninstall (German):
 [docs/install-netbox-docker.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/docs/install-netbox-docker.md) ·
