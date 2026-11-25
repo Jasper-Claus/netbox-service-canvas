@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/banner.png" alt="NetBox Service Canvas: interactive service map for NetBox" width="100%">
+
 # 🗺️ NetBox Service Canvas
 
 **See which services run where and how they talk to each other, right inside NetBox.**
@@ -16,14 +18,14 @@ NetBox data, not just drawn.
 [![CI](https://github.com/Jasper-Claus/netbox-service-canvas/actions/workflows/ci.yml/badge.svg)](https://github.com/Jasper-Claus/netbox-service-canvas/actions/workflows/ci.yml)
 
 [Features](#-features) · [Install](#-installation) · [How it works](#-how-it-works) · [Permissions](#-permissions) ·
-[API](#-rest-api--graphql) · [🇩🇪 Deutsch](docs/README.de.md)
+[API](#-rest-api--graphql) · [📖 Wiki](https://github.com/Jasper-Claus/netbox-service-canvas/wiki) ·
+[🇩🇪 Deutsch](docs/README.de.md)
 
 </div>
 
-<!--
-  Screenshot: add docs/images/editor.png (e.g. 1600x900) and uncomment the line below.
-  ![NetBox Service Canvas editor](docs/images/editor.png)
--->
+<p align="center">
+  <img src="docs/images/editor.png" alt="The canvas editor inside NetBox: hosts, services, applications, data flows and the node panel" width="100%">
+</p>
 
 ---
 
@@ -92,6 +94,22 @@ answer: pretty far. Issues, ideas and PRs from humans (or their AIs 😄) are ve
 
 For a simple one-port app you only need a service. When you create a service in the editor, you can create or link
 the application in the same dialog.
+
+### 📸 Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/impact.png" alt="Impact analysis: truenas fails, red and orange mark everything that breaks with it"></td>
+    <td width="50%"><img src="docs/images/new-service.png" alt="Create a service and its application in one dialog"></td>
+  </tr>
+  <tr>
+    <td align="center">⚡ <b>Impact analysis</b>: what breaks if <code>truenas</code> goes down?</td>
+    <td align="center">➕ <b>New service</b> with an optional application, in one dialog</td>
+  </tr>
+</table>
+
+> The editor UI is currently in German. An English translation is on the roadmap.
+> Screenshots show a demo homelab, not real infrastructure.
 
 ---
 
@@ -198,6 +216,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 - [ ] Services drawn inside their host's container
 - [ ] Live status (e.g. from monitoring) on nodes
 - [ ] Filters and search on the canvas, undo/redo
+- [ ] English UI (i18n)
+- [ ] Impact analysis follows VMs to their host device
 
 Got an idea? [Open an issue](https://github.com/Jasper-Claus/netbox-service-canvas/issues/new/choose). ⭐ Stars
 are appreciated if you find this useful!

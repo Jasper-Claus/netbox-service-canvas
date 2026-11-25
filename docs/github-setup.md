@@ -33,18 +33,24 @@ gh repo edit Jasper-Claus/netbox-service-canvas --add-topic netbox,netbox-plugin
 
 Außerdem **Settings → Features → Discussions** einschalten. Der Issue-Dialog verlinkt dorthin.
 
-## 3. Screenshots (wichtig für Aufmerksamkeit!)
+## 3. Bilder und Social Preview
 
-1. In NetBox eine schöne Beispiel-Canvas bauen: Gruppen, Applications, ein paar Datenflüsse, eine Notiz.
-2. Screenshots speichern unter `docs/images/`:
-   - `editor.png`: der ganze Editor (ca. 1600×900)
-   - `impact.png`: Impact-Analyse aktiv
-   - `node-panel.png`: Knoten-Panel offen
-3. In `README.md` den auskommentierten Bild-Block oben einkommentieren.
-4. Optional ein kurzes GIF (z. B. mit ScreenToGif): Device hineinziehen, Kante ziehen, Impact-Analyse.
+Die Bilder liegen fertig in `docs/images/` und sind in beide READMEs eingebunden:
 
-**Social Preview** (Settings → General → Social preview): `editor.png` auf 1280×640 zuschneiden und hochladen. Dieses
-Bild erscheint, wenn der Link in Foren, Discord oder Reddit geteilt wird.
+| Datei | Inhalt |
+|---|---|
+| `banner.png` | Banner oben im README (2560×1280) |
+| `editor.png` | Der ganze Editor mit Knoten-Panel (Dark Theme) |
+| `impact.png` | Impact-Analyse: Ausfall von `truenas` (Light Theme) |
+| `new-service.png` | Dialog „Neuer Service“ mit Application |
+| `social-preview.png` | Social Preview, 1280×640 |
+
+Alle Bilder zeigen eine Demo-Umgebung, keine echten Daten.
+
+**Social Preview** lässt sich nur im Browser setzen: Settings → General → Social preview → Edit → `docs/images/social-preview.png`
+hochladen. Dieses Bild erscheint, wenn der Link in Foren, Discord oder Reddit geteilt wird.
+
+Optional: ein kurzes GIF (z. B. mit ScreenToGif): Device hineinziehen, Kante ziehen, Impact-Analyse.
 
 ## 4. Erstes Release
 
@@ -77,3 +83,19 @@ python -m twine upload dist/*
 ## 6. Bekannt machen
 
 Fertige Beitragstexte stehen in [announcement.md](announcement.md).
+
+## 7. Wiki
+
+Die Wiki-Seiten liegen als Quelle in `docs/wiki/` (Home, Getting Started, Service vs Application, Editor Guide,
+Impact Analysis, Export, FAQ, Sidebar). GitHub legt das Wiki-Repo erst an, wenn die erste Seite im Browser
+gespeichert wurde:
+
+1. Im Repo auf **Wiki → Create the first page** klicken und einfach speichern.
+2. Danach die Seiten hochladen:
+
+```powershell
+git clone https://github.com/Jasper-Claus/netbox-service-canvas.wiki.git $env:TEMP\nsc-wiki
+```
+```powershell
+Copy-Item docs\wiki\*.md $env:TEMP\nsc-wiki\ -Force; git -C $env:TEMP\nsc-wiki add -A; git -C $env:TEMP\nsc-wiki commit -m "Add wiki pages"; git -C $env:TEMP\nsc-wiki push
+```

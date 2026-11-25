@@ -17,7 +17,7 @@ Thanks for your interest! 🎉 Issues, ideas, screenshots of your canvas and pul
 | `netbox_service_canvas/` | Django app: models, views, API, GraphQL, templates, tests |
 | `frontend/` | React 18 + React Flow 12 editor, built with Vite into `netbox_service_canvas/static/netbox_service_canvas/dist` |
 | `dev/` | Dev environment on top of netbox-docker (see `dev/README.md`) |
-| `docs/` | Installation guide and German README |
+| `docs/` | Installation guide, German README, wiki sources (`docs/wiki/`), internal planning notes (`docs/development/`) |
 
 ## Workflow
 

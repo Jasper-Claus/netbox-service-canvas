@@ -1,6 +1,10 @@
+<img src="images/banner.png" alt="NetBox Service Canvas" width="100%">
+
 # 🗺️ netbox-service-canvas
 
 > 🇬🇧 English version: [README.md](../README.md)
+
+<img src="images/editor.png" alt="Der Canvas-Editor in NetBox" width="100%">
 
 **Warum es das gibt:** Ich nutze NetBox sehr gerne. Es ist die Quelle der Wahrheit für mein ganzes Homelab. Was mir
 gefehlt hat, war der Blick auf die Service-Ebene: Welcher Dienst läuft wo, und wer redet mit wem? Deshalb habe ich mir
@@ -47,6 +51,12 @@ fließen und über welche Zwischenstationen.
   Verbindungen, bei Hosts und Applications inklusive ihrer Services.
 - Button **Auf Canvas anzeigen** auf denselben Seiten. Er führt in jeden Canvas, der das Objekt enthält, und hebt es
   dort hervor.
+
+### Screenshots
+
+| Impact-Analyse | Neuer Service mit Application |
+|---|---|
+| ![Impact-Analyse](images/impact.png) | ![Neuer Service](images/new-service.png) |
 
 ### Service oder Application?
 
