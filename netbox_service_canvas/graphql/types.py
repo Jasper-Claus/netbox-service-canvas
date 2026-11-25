@@ -6,7 +6,15 @@ import strawberry_django
 from netbox.graphql.types import NetBoxObjectType, ObjectType, PrimaryObjectType
 
 from .. import models
-from .filters import CanvasFilter, CanvasGroupFilter, CanvasNodeFilter, ConnectionHopFilter, ServiceConnectionFilter
+from .filters import (
+    ApplicationFilter,
+    CanvasFilter,
+    CanvasGroupFilter,
+    CanvasNodeFilter,
+    CanvasNoteFilter,
+    ConnectionHopFilter,
+    ServiceConnectionFilter,
+)
 
 if TYPE_CHECKING:
     from dcim.graphql.types import DeviceType, InterfaceType, SiteType
@@ -17,8 +25,10 @@ if TYPE_CHECKING:
     from vpn.graphql.types import TunnelType
 
 __all__ = (
+    'ApplicationType',
     'CanvasGroupType',
     'CanvasNodeType',
+    'CanvasNoteType',
     'CanvasType',
     'ConnectionHopType',
     'ServiceConnectionType',
@@ -28,9 +38,14 @@ DeviceT = Annotated['DeviceType', strawberry.lazy('dcim.graphql.types')]
 VirtualMachineT = Annotated['VirtualMachineType', strawberry.lazy('virtualization.graphql.types')]
 ServiceT = Annotated['ServiceType', strawberry.lazy('ipam.graphql.types')]
 ContentTypeT = Annotated['ContentTypeType', strawberry.lazy('netbox.graphql.types')]
+ApplicationT = Annotated['ApplicationType', strawberry.lazy('netbox_service_canvas.graphql.types')]
 
-EndpointUnion = Annotated[ServiceT | DeviceT | VirtualMachineT, strawberry.union('ServiceCanvasEndpointType')]
-NodeObjectUnion = Annotated[ServiceT | DeviceT | VirtualMachineT, strawberry.union('ServiceCanvasNodeObjectType')]
+EndpointUnion = Annotated[
+    ServiceT | DeviceT | VirtualMachineT | ApplicationT, strawberry.union('ServiceCanvasEndpointType')
+]
+NodeObjectUnion = Annotated[
+    ServiceT | DeviceT | VirtualMachineT | ApplicationT, strawberry.union('ServiceCanvasNodeObjectType')
+]
 HopObjectUnion = Annotated[
     ServiceT
     | Annotated['InterfaceType', strawberry.lazy('dcim.graphql.types')]
@@ -44,6 +59,11 @@ HopObjectUnion = Annotated[
     | VirtualMachineT,
     strawberry.union('ServiceCanvasHopObjectType'),
 ]
+
+
+@strawberry_django.type(models.Application, fields='__all__', filters=ApplicationFilter, pagination=True)
+class ApplicationType(PrimaryObjectType):
+    services: list[ServiceT]
 
 
 @strawberry_django.type(models.ServiceConnection, fields='__all__', filters=ServiceConnectionFilter, pagination=True)
@@ -77,6 +97,7 @@ class CanvasType(PrimaryObjectType):
     cluster: Annotated['ClusterType', strawberry.lazy('virtualization.graphql.types')] | None
     nodes: list[Annotated['CanvasNodeType', strawberry.lazy('netbox_service_canvas.graphql.types')]]
     groups: list[Annotated['CanvasGroupType', strawberry.lazy('netbox_service_canvas.graphql.types')]]
+    notes: list[Annotated['CanvasNoteType', strawberry.lazy('netbox_service_canvas.graphql.types')]]
 
 
 @strawberry_django.type(models.CanvasGroup, fields='__all__', filters=CanvasGroupFilter, pagination=True)
@@ -98,3 +119,9 @@ class CanvasNodeType(ObjectType):
     def object(self) -> NodeObjectUnion | None:
         return self.object
 
+
+
+@strawberry_django.type(models.CanvasNote, fields='__all__', filters=CanvasNoteFilter, pagination=True)
+class CanvasNoteType(ObjectType):
+    color: str
+    canvas: Annotated['CanvasType', strawberry.lazy('netbox_service_canvas.graphql.types')]

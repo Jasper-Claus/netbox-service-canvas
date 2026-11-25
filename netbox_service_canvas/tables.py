@@ -3,9 +3,10 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable, PrimaryModelTable, columns
 
-from .models import Canvas, ConnectionHop, ServiceConnection
+from .models import Application, Canvas, ConnectionHop, ServiceConnection
 
 __all__ = (
+    'ApplicationTable',
     'CanvasTable',
     'ConnectionHopTable',
     'ObjectServiceConnectionTable',
@@ -147,3 +148,35 @@ class CanvasTable(PrimaryModelTable):
             'last_updated',
         )
         default_columns = ('pk', 'name', 'site', 'cluster', 'node_count', 'description')
+
+
+class ApplicationTable(PrimaryModelTable):
+    name = tables.Column(
+        verbose_name=_('Name'),
+        linkify=True,
+    )
+    status = columns.ChoiceFieldColumn(
+        verbose_name=_('Status'),
+    )
+    web_url = tables.TemplateColumn(
+        template_code='{% if value %}<a href="{{ value }}" target="_blank" rel="noopener">{{ value }}</a>{% endif %}',
+        verbose_name=_('URL'),
+    )
+    services = columns.ManyToManyColumn(
+        linkify_item=True,
+        verbose_name=_('Services'),
+    )
+    service_count = tables.Column(
+        verbose_name=_('Services'),
+    )
+    tags = columns.TagColumn(
+        url_name='plugins:netbox_service_canvas:application_list',
+    )
+
+    class Meta(PrimaryModelTable.Meta):
+        model = Application
+        fields = (
+            'pk', 'id', 'name', 'status', 'version', 'web_url', 'services', 'service_count', 'description', 'comments',
+            'tags', 'created', 'last_updated',
+        )
+        default_columns = ('pk', 'name', 'status', 'version', 'web_url', 'services', 'description')

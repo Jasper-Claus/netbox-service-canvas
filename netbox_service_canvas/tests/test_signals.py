@@ -10,7 +10,7 @@ from ipam.models import VRF
 from netbox.context_managers import event_tracking
 from utilities.testing import create_test_user
 
-from ..models import Canvas, CanvasNode, ConnectionHop, ServiceConnection
+from ..models import Application, Canvas, CanvasNode, ConnectionHop, ServiceConnection
 from .utils import create_base_objects, create_connection
 
 
@@ -113,3 +113,26 @@ class DeletionSignalTest(TestCase):
         self.assertTrue(logged.exists())
         node_ct = ContentType.objects.get_for_model(CanvasNode)
         self.assertTrue(ObjectChange.objects.filter(changed_object_type=node_ct, action='delete').exists())
+
+
+class ApplicationDeletionTest(TestCase):
+
+    def test_application_delete_removes_nodes_and_connections(self):
+        o = create_base_objects()
+        app = Application.objects.create(name='Grafana')
+        app.services.set([o['grafana']])
+        canvas = Canvas.objects.create(name='Apps')
+        CanvasNode.objects.create(canvas=canvas, object=app)
+        create_connection(o['speedtest'], app)
+        app.delete()
+        self.assertFalse(CanvasNode.objects.exists())
+        self.assertFalse(ServiceConnection.objects.exists())
+        # The service itself is untouched
+        o['grafana'].refresh_from_db()
+
+    def test_service_delete_removes_it_from_applications(self):
+        o = create_base_objects()
+        app = Application.objects.create(name='Grafana')
+        app.services.set([o['grafana'], o['prometheus']])
+        o['grafana'].delete()
+        self.assertEqual(list(app.services.all()), [o['prometheus']])

@@ -10,13 +10,20 @@ from utilities.filters import MultiValueContentTypeFilter, MultiValueNumberFilte
 from utilities.filtersets import register_filterset
 from virtualization.models import Cluster, VirtualMachine
 
-from .choices import ConnectionDirectionChoices, ConnectionProtocolChoices, ConnectionStatusChoices
-from .models import Canvas, CanvasGroup, CanvasNode, ConnectionHop, ServiceConnection
+from .choices import (
+    ApplicationStatusChoices,
+    ConnectionDirectionChoices,
+    ConnectionProtocolChoices,
+    ConnectionStatusChoices,
+)
+from .models import Application, Canvas, CanvasGroup, CanvasNode, CanvasNote, ConnectionHop, ServiceConnection
 
 __all__ = (
+    'ApplicationFilterSet',
     'CanvasFilterSet',
     'CanvasGroupFilterSet',
     'CanvasNodeFilterSet',
+    'CanvasNoteFilterSet',
     'ConnectionHopFilterSet',
     'ServiceConnectionFilterSet',
 )
@@ -55,6 +62,10 @@ class ServiceConnectionFilterSet(PrimaryModelFilterSet):
     virtual_machine_id = MultiValueNumberFilter(
         method='filter_virtual_machine',
         label=_('Virtual machine (ID), as source or target, including services running on it'),
+    )
+    application_id = MultiValueNumberFilter(
+        method='filter_application',
+        label=_('Application (ID), as source or target, including its services'),
     )
     hop_type = MultiValueContentTypeFilter(
         field_name='hops__object_type',
@@ -95,6 +106,10 @@ class ServiceConnectionFilterSet(PrimaryModelFilterSet):
 
     def filter_virtual_machine(self, queryset, name, value):
         return self._filter_host(queryset, VirtualMachine, value)
+
+    def filter_application(self, queryset, name, value):
+        service_ids = Service.objects.filter(service_canvas_applications__in=value).values_list('pk', flat=True)
+        return queryset.filter(_endpoint_q(Application, value) | _endpoint_q(Service, list(service_ids)))
 
 
 @register_filterset
@@ -186,3 +201,62 @@ class CanvasNodeFilterSet(ChangeLoggedModelFilterSet):
 
     def search(self, queryset, name, value):
         return queryset
+
+
+@register_filterset
+class ApplicationFilterSet(PrimaryModelFilterSet):
+    status = django_filters.MultipleChoiceFilter(choices=ApplicationStatusChoices)
+    service_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='services',
+        queryset=Service.objects.all(),
+        label=_('Service (ID)'),
+    )
+    device_id = MultiValueNumberFilter(
+        method='filter_device',
+        label=_('Device (ID) running one of its services'),
+    )
+    virtual_machine_id = MultiValueNumberFilter(
+        method='filter_virtual_machine',
+        label=_('Virtual machine (ID) running one of its services'),
+    )
+
+    class Meta:
+        model = Application
+        fields = ('id', 'name', 'version', 'web_url', 'description')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(name__icontains=value) | Q(description__icontains=value) | Q(version__icontains=value)
+            | Q(comments__icontains=value)
+        )
+
+    def _filter_host(self, queryset, model, value):
+        return queryset.filter(
+            services__parent_object_type=ContentType.objects.get_for_model(model),
+            services__parent_object_id__in=value,
+        ).distinct()
+
+    def filter_device(self, queryset, name, value):
+        return self._filter_host(queryset, Device, value)
+
+    def filter_virtual_machine(self, queryset, name, value):
+        return self._filter_host(queryset, VirtualMachine, value)
+
+
+@register_filterset
+class CanvasNoteFilterSet(ChangeLoggedModelFilterSet):
+    canvas_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=Canvas.objects.all(),
+        label=_('Canvas (ID)'),
+    )
+
+    class Meta:
+        model = CanvasNote
+        fields = ('id', 'color')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(text__icontains=value)

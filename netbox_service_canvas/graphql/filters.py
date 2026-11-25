@@ -13,9 +13,11 @@ if TYPE_CHECKING:
     from netbox.graphql.filter_lookups import IntegerLookup
 
 __all__ = (
+    'ApplicationFilter',
     'CanvasFilter',
     'CanvasGroupFilter',
     'CanvasNodeFilter',
+    'CanvasNoteFilter',
     'ConnectionHopFilter',
     'ServiceConnectionFilter',
 )
@@ -69,3 +71,17 @@ class CanvasNodeFilter(ChangeLoggedModelFilter):
     object_type_id: ID | None = strawberry_django.filter_field()
     object_id: ID | None = strawberry_django.filter_field()
     group_id: ID | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter_type(models.Application, lookups=True)
+class ApplicationFilter(PrimaryModelFilter):
+    name: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    status: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    version: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    web_url: StrFilterLookup[str] | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter_type(models.CanvasNote, lookups=True)
+class CanvasNoteFilter(ChangeLoggedModelFilter):
+    canvas_id: ID | None = strawberry_django.filter_field()
+    text: StrFilterLookup[str] | None = strawberry_django.filter_field()

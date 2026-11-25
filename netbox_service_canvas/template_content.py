@@ -17,7 +17,7 @@ from .models import Canvas
 
 
 class ShowOnCanvasButton(PluginTemplateExtension):
-    models = ['dcim.device', 'virtualization.virtualmachine', 'ipam.service']
+    models = ['dcim.device', 'virtualization.virtualmachine', 'ipam.service', 'netbox_service_canvas.application']
 
     def buttons(self):
         obj = self.context['object']
@@ -64,4 +64,35 @@ class ServiceConnectionsPanel(PluginTemplateExtension):
         return panel.render(self.context)
 
 
-template_extensions = [ShowOnCanvasButton, ServiceConnectionsPanel]
+class ApplicationsPanel(PluginTemplateExtension):
+    """
+    Applications a service belongs to, or whose services run on a device / virtual machine.
+    """
+    models = ['ipam.service', 'dcim.device', 'virtualization.virtualmachine']
+    filter_names = {
+        'ipam.service': 'service_id',
+        'dcim.device': 'device_id',
+        'virtualization.virtualmachine': 'virtual_machine_id',
+    }
+
+    def right_page(self):
+        obj = self.context['object']
+        if not self.context['request'].user.has_perm('netbox_service_canvas.view_application'):
+            return ''
+        label = obj._meta.label_lower
+        panel = ObjectsTablePanel(
+            'netbox_service_canvas.application',
+            filters={self.filter_names[label]: obj.pk},
+            title=_('Applications'),
+            actions=[
+                actions.AddObject(
+                    'netbox_service_canvas.application',
+                    url_params={'services': obj.pk} if label == 'ipam.service' else {},
+                    label=_('Add application'),
+                ),
+            ],
+        )
+        return panel.render(self.context)
+
+
+template_extensions = [ApplicationsPanel, ShowOnCanvasButton, ServiceConnectionsPanel]

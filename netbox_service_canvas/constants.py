@@ -18,6 +18,7 @@ CONNECTION_ENDPOINT_TYPES = (
     ('ipam', 'service'),
     ('dcim', 'device'),
     ('virtualization', 'virtualmachine'),
+    ('netbox_service_canvas', 'application'),
 )
 CONNECTION_ENDPOINT_MODELS = _q(CONNECTION_ENDPOINT_TYPES)
 

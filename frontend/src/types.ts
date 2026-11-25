@@ -1,4 +1,4 @@
-export type ObjType = 'device' | 'virtualmachine' | 'service';
+export type ObjType = 'device' | 'virtualmachine' | 'service' | 'application';
 
 export interface Status {
   value: string;
@@ -15,6 +15,13 @@ export interface ServiceInfo {
   parent_name: string;
 }
 
+export interface ApplicationInfo {
+  version: string;
+  web_url: string;
+  description: string;
+  service_keys: string[];
+}
+
 /** Compact description of a NetBox object, as returned by the plugin's graph endpoint. */
 export interface ObjectDescriptor {
   key: string; // "<app_label>.<model>:<pk>"
@@ -26,6 +33,7 @@ export interface ObjectDescriptor {
   primary_ip: string | null;
   subtitle: string;
   service?: ServiceInfo;
+  application?: ApplicationInfo;
 }
 
 export interface LayoutNode {
@@ -42,6 +50,16 @@ export interface LayoutNode {
 export interface LayoutGroup {
   id: number;
   name: string;
+  color: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface LayoutNote {
+  id: number;
+  text: string;
   color: string;
   x: number;
   y: number;
@@ -74,13 +92,26 @@ export interface RunsOn {
   target: string; // host key
 }
 
+export interface PartOf {
+  id: string;
+  source: string; // service key
+  target: string; // application key
+}
+
+export interface GraphEdges {
+  runs_on: RunsOn[];
+  part_of: PartOf[];
+  flows: Flow[];
+}
+
 export interface GraphResponse {
   canvas: number;
   grid_size: number;
   groups: LayoutGroup[];
   nodes: LayoutNode[];
+  notes: LayoutNote[];
   objects: Record<string, ObjectDescriptor>;
-  edges: { runs_on: RunsOn[]; flows: Flow[] };
+  edges: GraphEdges;
 }
 
 export interface Perms {
@@ -95,6 +126,9 @@ export interface Perms {
   delete_hop: boolean;
   add_service: boolean;
   change_service: boolean;
+  add_application: boolean;
+  change_application: boolean;
+  edit_notes: boolean;
 }
 
 export interface EditorConfig {
@@ -127,16 +161,30 @@ export interface SnapGroup {
   height: number;
 }
 
+export interface SnapNote {
+  clientKey: string;
+  dbId: number | null;
+  text: string;
+  color: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface Snapshot {
   nodes: Record<string, SnapNode>;
   groups: Record<string, SnapGroup>;
+  notes: Record<string, SnapNote>;
 }
 
 export interface LayoutPayload {
   groups: Array<Record<string, unknown>>;
   nodes: Array<Record<string, unknown>>;
+  notes: Array<Record<string, unknown>>;
   deleted_nodes: number[];
   deleted_groups: number[];
+  deleted_notes: number[];
 }
 
 export interface Hop {

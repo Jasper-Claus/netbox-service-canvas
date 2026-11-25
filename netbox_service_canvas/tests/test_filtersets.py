@@ -2,8 +2,8 @@ from django.test import TestCase
 
 from ipam.models import VRF
 
-from ..filtersets import CanvasFilterSet, ServiceConnectionFilterSet
-from ..models import Canvas, CanvasNode, ConnectionHop, ServiceConnection
+from ..filtersets import ApplicationFilterSet, CanvasFilterSet, ServiceConnectionFilterSet
+from ..models import Application, Canvas, CanvasNode, ConnectionHop, ServiceConnection
 from .utils import create_base_objects, create_connection
 
 
@@ -65,3 +65,40 @@ class CanvasFilterSetTest(TestCase):
             {'object_type': ['ipam.service'], 'object_id': [self.o['grafana'].pk]}, Canvas.objects.all()
         ).qs
         self.assertEqual(set(qs), {self.a})
+
+
+class ApplicationFilterSetTest(TestCase):
+    queryset = Application.objects.all()
+    filterset = ApplicationFilterSet
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.o = create_base_objects()
+        grafana = Application.objects.create(name='Grafana', status='active', version='11')
+        grafana.services.set([cls.o['grafana']])
+        prometheus = Application.objects.create(name='Prometheus', status='planned')
+        prometheus.services.set([cls.o['prometheus']])
+        Application.objects.create(name='Paperless', status='offline')
+
+    def test_status(self):
+        self.assertEqual(self.filterset({'status': ['active', 'planned']}, self.queryset).qs.count(), 2)
+
+    def test_service(self):
+        self.assertEqual(self.filterset({'service_id': [self.o['grafana'].pk]}, self.queryset).qs.count(), 1)
+
+    def test_runs_on_host(self):
+        self.assertEqual(self.filterset({'device_id': [self.o['device2'].pk]}, self.queryset).qs.get().name, 'Grafana')
+        self.assertEqual(
+            self.filterset({'virtual_machine_id': [self.o['vm1'].pk]}, self.queryset).qs.get().name, 'Prometheus'
+        )
+
+    def test_search(self):
+        self.assertEqual(self.filterset({'q': 'paper'}, self.queryset).qs.count(), 1)
+
+    def test_connection_application_filter(self):
+        app = Application.objects.get(name='Grafana')
+        create_connection(self.o['speedtest'], self.o['grafana'])  # via its service
+        create_connection(self.o['prometheus'], app)               # directly
+        create_connection(self.o['speedtest'], self.o['traefik'])  # unrelated
+        qs = ServiceConnectionFilterSet({'application_id': [app.pk]}, ServiceConnection.objects.all()).qs
+        self.assertEqual(qs.count(), 2)

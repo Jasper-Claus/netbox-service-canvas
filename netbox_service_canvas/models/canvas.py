@@ -14,6 +14,7 @@ __all__ = (
     'Canvas',
     'CanvasGroup',
     'CanvasNode',
+    'CanvasNote',
 )
 
 
@@ -194,3 +195,39 @@ class CanvasNode(ChangeLoggedModel):
         super().clean()
         if self.group_id and self.canvas_id and self.group.canvas_id != self.canvas_id:
             raise ValidationError({'group': _('The group belongs to a different canvas.')})
+
+
+class CanvasNote(ChangeLoggedModel):
+    """
+    A free-text sticky note on a canvas (hints, TODOs). Like groups and nodes it is layout data and change-logged.
+    """
+    canvas = models.ForeignKey(
+        to='netbox_service_canvas.Canvas',
+        on_delete=models.CASCADE,
+        related_name='notes',
+        verbose_name=_('canvas'),
+    )
+    text = models.TextField(
+        verbose_name=_('text'),
+        blank=True,
+    )
+    color = ColorField(
+        verbose_name=_('color'),
+        default='ffe082',
+    )
+    x = models.FloatField(default=0)
+    y = models.FloatField(default=0)
+    width = models.FloatField(default=220)
+    height = models.FloatField(default=140)
+
+    class Meta:
+        ordering = ('canvas', 'pk')
+        verbose_name = _('canvas note')
+        verbose_name_plural = _('canvas notes')
+
+    def __str__(self):
+        first_line = (self.text or '').strip().splitlines()[0] if (self.text or '').strip() else ''
+        return first_line[:50] or f'{_("Note")} #{self.pk}'
+
+    def get_absolute_url(self):
+        return self.canvas.get_absolute_url()

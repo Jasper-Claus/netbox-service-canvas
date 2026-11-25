@@ -8,11 +8,17 @@ from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
 from virtualization.models import Cluster
 
-from ..choices import ConnectionDirectionChoices, ConnectionProtocolChoices, ConnectionStatusChoices
+from ..choices import (
+    ApplicationStatusChoices,
+    ConnectionDirectionChoices,
+    ConnectionProtocolChoices,
+    ConnectionStatusChoices,
+)
 from ..constants import PORT_MAX, PORT_MIN
-from ..models import Canvas, ConnectionHop, ServiceConnection
+from ..models import Application, Canvas, ConnectionHop, ServiceConnection
 
 __all__ = (
+    'ApplicationBulkEditForm',
     'CanvasBulkEditForm',
     'ConnectionHopBulkEditForm',
     'ServiceConnectionBulkEditForm',
@@ -85,3 +91,22 @@ class CanvasBulkEditForm(PrimaryModelBulkEditForm):
         FieldSet('site', 'cluster', 'description'),
     )
     nullable_fields = ('site', 'cluster', 'description', 'comments')
+
+
+class ApplicationBulkEditForm(PrimaryModelBulkEditForm):
+    status = forms.ChoiceField(
+        label=_('Status'),
+        choices=add_blank_choice(ApplicationStatusChoices),
+        required=False,
+    )
+    version = forms.CharField(
+        label=_('Version'),
+        max_length=50,
+        required=False,
+    )
+
+    model = Application
+    fieldsets = (
+        FieldSet('status', 'version', 'description'),
+    )
+    nullable_fields = ('version', 'description', 'comments')

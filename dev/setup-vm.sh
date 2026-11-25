@@ -11,6 +11,11 @@ NETBOX_DOCKER_RELEASE="4.0.2"   # netbox-docker release that ships NetBox v4.5.7
 
 PLUGIN_SRC="$(cd "$PLUGIN_SRC" && pwd)"
 
+# The source is bind-mounted into the container, where NetBox runs as a different user.
+# Files copied from Windows (scp) may lack read/traverse bits for "others"; Python would then
+# see netbox_service_canvas as an empty namespace package ("does not provide a 'config' variable").
+chmod -R a+rX "$PLUGIN_SRC"
+
 if [ ! -d "$NETBOX_DOCKER_DIR" ]; then
   git clone --depth 1 --branch "$NETBOX_DOCKER_RELEASE" \
     https://github.com/netbox-community/netbox-docker.git "$NETBOX_DOCKER_DIR"

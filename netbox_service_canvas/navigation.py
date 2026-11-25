@@ -31,6 +31,9 @@ menu = PluginMenu(
         (_('Canvas'), (
             _item('canvas', _('Canvases'), 'canvas'),
         )),
+        (_('Applications'), (
+            _item('application', _('Applications'), 'application'),
+        )),
         (_('Connections'), (
             _item('serviceconnection', _('Service Connections'), 'serviceconnection'),
             _item('connectionhop', _('Connection Hops'), 'connectionhop'),

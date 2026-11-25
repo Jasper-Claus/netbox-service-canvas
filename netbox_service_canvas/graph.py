@@ -1,6 +1,7 @@
 """
 Read-side helpers for the canvas editor: turn NetBox objects into compact node descriptors and derive the edges
-between them. Edges are never stored per canvas. They come from Service.parent ("runs on") and ServiceConnection.
+between them. Edges are never stored per canvas. They come from Service.parent ("runs on"), Application.services
+("part of") and ServiceConnection.
 
 Object keys have the form "<app_label>.<model>:<pk>", e.g. "ipam.service:12".
 """
@@ -14,18 +15,22 @@ from ipam.models import Service
 from virtualization.models import VirtualMachine
 
 from .constants import CANVAS_NODE_TYPES
-from .models import ServiceConnection
+from .models import Application, ServiceConnection
 
 MODELS = {
     'dcim.device': Device,
     'virtualization.virtualmachine': VirtualMachine,
     'ipam.service': Service,
+    'netbox_service_canvas.application': Application,
 }
 NODE_TYPE = {
     'dcim.device': 'device',
     'virtualization.virtualmachine': 'virtualmachine',
     'ipam.service': 'service',
+    'netbox_service_canvas.application': 'application',
 }
+APPLICATION = 'netbox_service_canvas.application'
+SERVICE = 'ipam.service'
 
 
 def make_key(label, pk):
@@ -98,6 +103,16 @@ def describe(obj, label=None):
             'parent_type': parent_label,
             'parent_name': str(parent) if parent is not None else '',
         }
+    elif label == APPLICATION:
+        data['status'] = _status(obj)
+        service_ids = [s.pk for s in obj.services.all()]  # prefetched
+        data['subtitle'] = obj.version
+        data['application'] = {
+            'version': obj.version,
+            'web_url': obj.web_url,
+            'description': obj.description,
+            'service_keys': [make_key(SERVICE, pk) for pk in sorted(service_ids)],
+        }
     return data
 
 
@@ -116,6 +131,8 @@ def fetch_objects(user, keys_by_label):
             qs = qs.select_related('cluster', 'primary_ip4', 'primary_ip6')
         elif label == 'ipam.service':
             qs = qs.select_related('parent_object_type').prefetch_related('parent')
+        elif label == APPLICATION:
+            qs = qs.prefetch_related('services')
         for obj in qs:
             objects[make_key(label, obj.pk)] = obj
     return objects
@@ -160,14 +177,21 @@ def build_edges(user, node_keys, descriptors):
     """
     Derive edges between the given nodes:
       * runs_on: service -> its parent device/VM (if both are present)
+      * part_of: service -> application it belongs to (if both are present)
       * flow:    every ServiceConnection whose source and target are both present
     """
     present = set(node_keys)
     runs_on = []
+    part_of = []
     for key, desc in descriptors.items():
         service = desc.get('service')
         if service and service['parent_key'] in present:
             runs_on.append({'id': f'runs_on:{key}', 'source': key, 'target': service['parent_key']})
+        application = desc.get('application')
+        if application:
+            for service_key in application['service_keys']:
+                if service_key in present:
+                    part_of.append({'id': f'part_of:{service_key}:{key}', 'source': service_key, 'target': key})
 
     keys_by_label = parse_keys(node_keys)
     flows = []
@@ -176,7 +200,7 @@ def build_edges(user, node_keys, descriptors):
             _endpoint_filter(keys_by_label, 'source') & _endpoint_filter(keys_by_label, 'target')
         ).select_related('source_type', 'target_type').annotate(hop_count=Count('hops'))
         flows = [connection_data(conn) for conn in qs]
-    return {'runs_on': runs_on, 'flows': flows}
+    return {'runs_on': runs_on, 'part_of': part_of, 'flows': flows}
 
 
 def missing_keys(user, node_keys):
@@ -184,6 +208,7 @@ def missing_keys(user, node_keys):
     Objects related to the nodes of a canvas that are not on it yet:
       * services running on devices/VMs of the canvas
       * parents of services on the canvas
+      * services of applications on the canvas, and applications of services on the canvas
       * the other endpoint of every connection touching an object on the canvas
     """
     present = set(node_keys)
@@ -207,6 +232,18 @@ def missing_keys(user, node_keys):
             label = ct_label(ContentType.objects.get_for_id(ct_id))
             if label in MODELS:
                 found.add(make_key(label, parent_id))
+
+    app_pks = keys_by_label.get(APPLICATION)
+    if app_pks:
+        for pk in Service.objects.restrict(user, 'view').filter(
+            service_canvas_applications__in=app_pks
+        ).values_list('pk', flat=True).distinct():
+            found.add(make_key(SERVICE, pk))
+    if service_pks:
+        for pk in Application.objects.restrict(user, 'view').filter(
+            services__in=service_pks
+        ).values_list('pk', flat=True).distinct():
+            found.add(make_key(APPLICATION, pk))
 
     if keys_by_label:
         qs = ServiceConnection.objects.restrict(user, 'view').filter(

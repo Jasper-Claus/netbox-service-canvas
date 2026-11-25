@@ -290,7 +290,7 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
 
         {canAddHop && (
           <div className="nsc-hop-add">
-            <ObjectPicker types={HOP_TYPES} value={newHop} onChange={setNewHop} idPrefix="nsc-hop" />
+            <ObjectPicker types={HOP_TYPES} value={newHop} onChange={setNewHop} idPrefix="nsc-hop" compact />
             <input
               className="form-control form-control-sm mt-1"
               placeholder="Notiz (optional)"

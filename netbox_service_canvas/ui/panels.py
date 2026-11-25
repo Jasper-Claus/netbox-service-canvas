@@ -26,3 +26,11 @@ class CanvasPanel(panels.ObjectAttributesPanel):
     site = attrs.RelatedObjectAttr('site', label=_('Site'), linkify=True)
     cluster = attrs.RelatedObjectAttr('cluster', label=_('Cluster'), linkify=True)
     description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ApplicationPanel(panels.ObjectAttributesPanel):
+    name = attrs.TextAttr('name', label=_('Name'))
+    status = attrs.ChoiceAttr('status', label=_('Status'))
+    version = attrs.TextAttr('version', label=_('Version'))
+    web_url = attrs.TemplatedAttr('web_url', label=_('URL'), template_name='netbox_service_canvas/inc/url_attr.html')
+    description = attrs.TextAttr('description', label=_('Description'))

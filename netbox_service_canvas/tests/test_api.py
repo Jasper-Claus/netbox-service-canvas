@@ -7,7 +7,7 @@ from ipam.models import VRF
 from users.models import ObjectPermission
 from utilities.testing import APITestCase, APIViewTestCases
 
-from ..models import Canvas, CanvasGroup, CanvasNode, ConnectionHop, ServiceConnection
+from ..models import Application, Canvas, CanvasGroup, CanvasNode, CanvasNote, ConnectionHop, ServiceConnection
 from .utils import create_base_objects, create_connection
 
 NAMESPACE = 'plugins-api:netbox_service_canvas'
@@ -81,6 +81,28 @@ class ConnectionHopAPITest(APIViewTestCases.APIViewTestCase):
             {'connection': other.pk, 'order': 2, 'object_type': 'ipam.vrf', 'object_id': vrfs[3].pk},
             # no order given: appended
             {'connection': other.pk, 'object_type': 'ipam.vrf', 'object_id': vrfs[4].pk, 'note': 'append'},
+        ]
+
+
+class ApplicationAPITest(APIViewTestCases.APIViewTestCase):
+    model = Application
+    view_namespace = NAMESPACE
+    brief_fields = ['description', 'display', 'id', 'name', 'status', 'url', 'version']
+    graphql_base_name = 'service_canvas_application'
+    bulk_update_data = {
+        'status': 'planned',
+    }
+
+    @classmethod
+    def setUpTestData(cls):
+        o = create_base_objects()
+        Application.objects.create(name='Grafana').services.set([o['grafana']])
+        Application.objects.create(name='Prometheus').services.set([o['prometheus']])
+        Application.objects.create(name='Speedtest Tracker')
+        cls.create_data = [
+            {'name': 'Paperless', 'version': '2.14', 'web_url': 'https://paperless.example.com'},
+            {'name': 'Traefik', 'status': 'active', 'services': [o['traefik'].pk]},
+            {'name': 'Home Assistant', 'status': 'planned', 'services': [o['speedtest'].pk, o['traefik'].pk]},
         ]
 
 
@@ -218,6 +240,40 @@ class CanvasLayoutAPITest(APITestCase):
         perm.object_types.add(ContentType.objects.get_for_model(Canvas))
         response = self.client.put(self.url(), {'nodes': []}, format='json', **self.header)
         self.assertHttpStatus(response, status.HTTP_404_NOT_FOUND)
+
+    def grant_notes(self):
+        self.add_permissions(
+            'netbox_service_canvas.add_canvasnote', 'netbox_service_canvas.change_canvasnote',
+            'netbox_service_canvas.delete_canvasnote', 'netbox_service_canvas.view_canvasnote',
+        )
+
+    def test_notes_create_update_delete(self):
+        self.grant_all()
+        self.grant_notes()
+        payload = {'notes': [{'key': 'n1', 'text': 'Backup prüfen', 'x': 12, 'y': 18, 'width': 220, 'height': 140}]}
+        response = self.client.put(self.url(), payload, format='json', **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        note = CanvasNote.objects.get(canvas=self.canvas)
+        self.assertEqual(response.data['created_notes'], {'n1': note.pk})
+        self.assertEqual((note.x, note.y, note.text), (10, 20, 'Backup prüfen'))
+        self.assertEqual(response.data['notes'][0]['id'], note.pk)
+
+        payload = {'notes': [{'id': note.pk, 'text': 'Erledigt', 'color': 'a5d6a7', 'x': 10, 'y': 20,
+                              'width': 220, 'height': 140}]}
+        response = self.client.put(self.url(), payload, format='json', **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        note.refresh_from_db()
+        self.assertEqual((note.text, note.color), ('Erledigt', 'a5d6a7'))
+
+        response = self.client.put(self.url(), {'deleted_notes': [note.pk]}, format='json', **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertFalse(CanvasNote.objects.exists())
+
+    def test_notes_require_permission(self):
+        self.grant_all()
+        payload = {'notes': [{'text': 'x', 'x': 0, 'y': 0, 'width': 100, 'height': 100}]}
+        response = self.client.put(self.url(), payload, format='json', **self.header)
+        self.assertHttpStatus(response, status.HTTP_403_FORBIDDEN)
 
     def test_group_membership_kept_when_omitted(self):
         self.grant_all()
@@ -364,3 +420,51 @@ class ReorderHopsAPITest(APITestCase):
             self.url(), {'hops': [h.pk for h in reversed(self.hops)]}, format='json', **self.header
         )
         self.assertHttpStatus(response, status.HTTP_403_FORBIDDEN)
+
+
+class ApplicationGraphAPITest(APITestCase):
+    """
+    Applications on the canvas: descriptor, "part of" edges and "add missing".
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.o = create_base_objects()
+        cls.app = Application.objects.create(name='Grafana', version='11.2', status='active')
+        cls.app.services.set([cls.o['grafana']])
+        cls.canvas = Canvas.objects.create(name='Apps')
+        for obj in (cls.app, cls.o['grafana']):
+            CanvasNode.objects.create(canvas=cls.canvas, object=obj, x=0, y=0)
+        cls.flow = create_connection(cls.o['speedtest'], cls.app)
+
+    def grant_view(self):
+        self.add_permissions(
+            'netbox_service_canvas.view_canvas', 'netbox_service_canvas.view_serviceconnection',
+            'netbox_service_canvas.view_application', 'dcim.view_device', 'ipam.view_service',
+            'virtualization.view_virtualmachine',
+        )
+
+    def test_graph_part_of(self):
+        self.grant_view()
+        url = reverse(f'{NAMESPACE}-api:canvas-graph', kwargs={'pk': self.canvas.pk})
+        response = self.client.get(url, **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        app_key = f'netbox_service_canvas.application:{self.app.pk}'
+        grafana = f"ipam.service:{self.o['grafana'].pk}"
+        desc = response.data['objects'][app_key]
+        self.assertEqual(desc['type'], 'application')
+        self.assertEqual(desc['application']['service_keys'], [grafana])
+        self.assertEqual(desc['status']['value'], 'active')
+        self.assertEqual(response.data['edges']['part_of'], [
+            {'id': f'part_of:{grafana}:{app_key}', 'source': grafana, 'target': app_key},
+        ])
+
+    def test_missing_includes_application_relations(self):
+        self.grant_view()
+        url = reverse(f'{NAMESPACE}-api:canvas-missing', kwargs={'pk': self.canvas.pk})
+        response = self.client.get(url, **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertEqual(set(response.data['objects']), {
+            f"dcim.device:{self.o['device2'].pk}",     # parent of grafana
+            f"ipam.service:{self.o['speedtest'].pk}",  # connected to the application
+        })

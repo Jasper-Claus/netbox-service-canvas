@@ -13,11 +13,17 @@ from utilities.forms.fields import (
 from utilities.forms.rendering import FieldSet
 from virtualization.models import Cluster, VirtualMachine
 
-from ..choices import ConnectionDirectionChoices, ConnectionProtocolChoices, ConnectionStatusChoices
+from ..choices import (
+    ApplicationStatusChoices,
+    ConnectionDirectionChoices,
+    ConnectionProtocolChoices,
+    ConnectionStatusChoices,
+)
 from ..constants import CONNECTION_ENDPOINT_MODELS, HOP_OBJECT_MODELS
-from ..models import Canvas, ConnectionHop, ServiceConnection
+from ..models import Application, Canvas, ConnectionHop, ServiceConnection
 
 __all__ = (
+    'ApplicationFilterForm',
     'CanvasFilterForm',
     'ConnectionHopFilterForm',
     'ServiceConnectionFilterForm',
@@ -30,7 +36,8 @@ class ServiceConnectionFilterForm(PrimaryModelFilterSetForm):
         FieldSet('q', 'filter_id', 'tag'),
         FieldSet('protocol', 'port', 'direction', 'status', name=_('Attributes')),
         FieldSet(
-            'service_id', 'device_id', 'virtual_machine_id', 'source_type_id', 'target_type_id', name=_('Endpoints')
+            'service_id', 'device_id', 'virtual_machine_id', 'application_id', 'source_type_id', 'target_type_id',
+            name=_('Endpoints'),
         ),
         FieldSet('owner_group_id', 'owner_id', name=_('Ownership')),
     )
@@ -67,6 +74,11 @@ class ServiceConnectionFilterForm(PrimaryModelFilterSetForm):
         queryset=VirtualMachine.objects.all(),
         required=False,
         label=_('Virtual machine'),
+    )
+    application_id = DynamicModelMultipleChoiceField(
+        queryset=Application.objects.all(),
+        required=False,
+        label=_('Application'),
     )
     source_type_id = ContentTypeMultipleChoiceField(
         queryset=ContentType.objects.filter(CONNECTION_ENDPOINT_MODELS),
@@ -116,5 +128,40 @@ class CanvasFilterForm(PrimaryModelFilterSetForm):
         queryset=Cluster.objects.all(),
         required=False,
         label=_('Cluster'),
+    )
+    tag = TagFilterField(model)
+
+
+class ApplicationFilterForm(PrimaryModelFilterSetForm):
+    model = Application
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('status', 'version', name=_('Attributes')),
+        FieldSet('service_id', 'device_id', 'virtual_machine_id', name=_('Runs on')),
+        FieldSet('owner_group_id', 'owner_id', name=_('Ownership')),
+    )
+    status = forms.MultipleChoiceField(
+        label=_('Status'),
+        choices=ApplicationStatusChoices,
+        required=False,
+    )
+    version = forms.CharField(
+        label=_('Version'),
+        required=False,
+    )
+    service_id = DynamicModelMultipleChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        label=_('Service'),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        label=_('Device'),
+    )
+    virtual_machine_id = DynamicModelMultipleChoiceField(
+        queryset=VirtualMachine.objects.all(),
+        required=False,
+        label=_('Virtual machine'),
     )
     tag = TagFilterField(model)

@@ -9,6 +9,13 @@ export interface GroupUpdate {
   height?: number;
 }
 
+export interface NoteUpdate {
+  text?: string;
+  color?: string;
+  width?: number;
+  height?: number;
+}
+
 export interface EditorContextValue {
   api: Api;
   perms: Perms;
@@ -16,6 +23,8 @@ export interface EditorContextValue {
   grid: number;
   updateGroup: (nodeId: string, update: GroupUpdate) => void;
   deleteGroup: (nodeId: string) => void;
+  updateNote: (nodeId: string, update: NoteUpdate) => void;
+  deleteNote: (nodeId: string) => void;
   notify: (message: string, kind?: 'success' | 'danger' | 'info') => void;
 }
 

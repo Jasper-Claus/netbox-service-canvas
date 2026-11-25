@@ -49,3 +49,21 @@ class ConnectionStatusChoices(ChoiceSet):
         (STATUS_PLANNED, _('Planned'), 'cyan'),
         (STATUS_DISABLED, _('Disabled'), 'gray'),
     ]
+
+
+class ApplicationStatusChoices(ChoiceSet):
+    key = 'Application.status'
+
+    STATUS_ACTIVE = 'active'
+    STATUS_PLANNED = 'planned'
+    STATUS_STAGING = 'staging'
+    STATUS_DECOMMISSIONING = 'decommissioning'
+    STATUS_OFFLINE = 'offline'
+
+    CHOICES = [
+        (STATUS_ACTIVE, _('Active'), 'green'),
+        (STATUS_PLANNED, _('Planned'), 'cyan'),
+        (STATUS_STAGING, _('Staging'), 'blue'),
+        (STATUS_DECOMMISSIONING, _('Decommissioning'), 'yellow'),
+        (STATUS_OFFLINE, _('Offline'), 'gray'),
+    ]

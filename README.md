@@ -9,6 +9,7 @@ fließen und über welche Zwischenstationen.
 - „Service läuft auf Host“ ist das Core-Feld `Service.parent` (Device oder VM).
 - „Service spricht mit Service“ ist das Plugin-Modell `ServiceConnection`, mit optionalen `ConnectionHop`s (über
   Reverse-Proxy, VRF, Tunnel, VLAN …).
+- „Service gehört zu Application“ ist das Plugin-Modell `Application` (z. B. Grafana, Paperless) mit seinen Services.
 - Ein Canvas ist eine Ansicht. Dasselbe Objekt kann auf mehreren Canvases liegen. Verschwindet es aus NetBox,
   verschwindet es auch von allen Canvases.
 
@@ -24,24 +25,28 @@ fließen und über welche Zwischenstationen.
 ## Funktionen
 
 ### Daten (überall in NetBox nutzbar, auch ohne Canvas)
-- **Service Connections**: Quelle und Ziel sind jeweils ein Service, Device oder eine VM. Dazu kommen Richtung
+- **Applications**: Anwendungen wie Grafana oder Paperless mit Status, Version, URL und den zugehörigen NetBox-Services.
+  Auf Service-, Device- und VM-Seiten zeigt ein Panel die Applications des Objekts.
+- **Service Connections**: Quelle und Ziel sind jeweils ein Service, Device, eine VM oder eine Application. Dazu kommen Richtung
   (uni/bi), Protokoll (TCP, UDP, HTTP, HTTPS, MQTT, gRPC, SMB, NFS, Other), Port, „Daten“-Beschreibung, Status
   (active/planned/disabled), Tags, Custom Fields und Kommentare.
 - **Connection Hops**: geordnete Zwischenstationen. Erlaubt sind Service, Interface, VM-Interface, VLAN, VRF, Prefix,
   IP-Adresse, Tunnel, Device und VM.
 - Für alle Modelle gibt es Listen, Filter, Detailseiten, Bulk-Edit/-Delete und **CSV-Import**, außerdem die globale
   Suche, REST-API, GraphQL, Changelog und Journal.
-- Tab **Connections** auf Device-, VM- und Service-Seiten (ein- und ausgehend, bei Hosts inklusive ihrer Services).
+- Tab **Connections** (Abhängigkeits-Tabelle) auf Device-, VM-, Service- und Application-Seiten: ein- und ausgehende
+  Verbindungen, bei Hosts und Applications inklusive ihrer Services.
 - Button **Auf Canvas anzeigen** auf denselben Seiten. Er führt in jeden Canvas, der das Objekt enthält, und hebt es
   dort hervor.
 
 ### Canvas-Editor (Tab „Editor“ eines Canvas)
-- **Seitenleiste** mit Suche nach Devices, VMs und Services. Objekte lassen sich per Drag & Drop oder über `+` auf den
+- **Seitenleiste** mit Suche nach Devices, VMs, Services und Applications. Objekte lassen sich per Drag & Drop oder über `+` auf den
   Canvas legen.
-- **Knoten** zeigen Icon, Name (verlinkt), Primär-IP bzw. Protokoll und Ports. Die Statusfarbe ist die des Hosts;
+- **Knoten** zeigen Icon, Name, Primär-IP bzw. Protokoll und Ports (Applications: Version und URL). Die Statusfarbe ist die des Hosts;
   Services übernehmen sie von ihrem Parent.
 - **Kanten** werden aus den Daten abgeleitet:
   - gestrichelt grau: „läuft auf“ (Service → Host)
+  - lila gepunktet: „gehört zu“ (Service → Application)
   - farbig: Datenfluss. Grün bedeutet aktiv, gestrichelt cyan geplant, gepunktet grau deaktiviert. Pfeile zeigen die
     Richtung, das Label Protokoll, Port und Daten.
 - **Kante ziehen** öffnet einen Dialog:
@@ -49,6 +54,14 @@ fließen und über welche Zwischenstationen.
   - *Datenfluss* legt eine `ServiceConnection` an. Der Port ist aus dem Ziel-Service vorbelegt.
 - **Kanten-Panel** (Klick auf eine Kante): Felder bearbeiten, Verbindung löschen, Hops anhängen, entfernen und per
   Drag & Drop umsortieren.
+- **Knoten-Panel** (Klick auf einen Knoten): Details, Verbindungen auf der Canvas, „In NetBox öffnen“, „Alle Felder
+  bearbeiten“ (NetBox-Formular, danach zurück zum Editor), Schnellbearbeitung für Services und Applications,
+  Impact-Analyse und „Von dieser Canvas entfernen“.
+- **Impact-Analyse**: Was fällt aus, wenn dieses Objekt ausfällt? Rot: fällt mit aus (Services auf dem Host,
+  Applications dieser Services). Orange: abhängig betroffen (wer Daten an ein ausgefallenes Objekt sendet, transitiv;
+  bidirektionale Flüsse in beide Richtungen, deaktivierte werden ignoriert). Alles andere wird ausgegraut.
+- **Notizen**: Haftnotizen auf der Canvas, Doppelklick zum Schreiben, Farbe und Größe änderbar.
+- **Neue Application**: Name, Status, Version, URL und Services. Markierte Services werden vorausgewählt.
 - **Neuer Service**: Name, Protokoll, Ports (`80, 443, 8000-8010`) und Host. Der Service wird direkt in NetBox
   angelegt und unter seinen Host gelegt.
 - **Gruppen**: Rahmen mit Name und Farbe, in der Größe änderbar. Knoten hineinziehen nimmt sie auf. Sind beim Anlegen
@@ -57,7 +70,8 @@ fließen und über welche Zwischenstationen.
 - **Auto-Layout** (ELK, schichtweise von links nach rechts, Gruppen bleiben zusammen), **Minimap**, Zoom,
   **Snap-to-Grid**.
 - **Autosave** (abschaltbar) mit Statusanzeige. Gespeichert werden nur tatsächlich geänderte Knoten und Gruppen.
-- **Export** als PNG oder SVG.
+- **Export** als PNG, SVG oder **PDF (DIN A4)** zum Drucken: Hoch- oder Querformat je nach Diagramm, Kopfzeile mit
+  Name und Datum, Legende, immer im hellen Design.
 - **Nur-Ansicht-Modus**: automatisch ohne Bearbeitungsrechte, sonst umschaltbar. Jede Aktion richtet sich nach den
   NetBox-Rechten des Benutzers (inklusive Objekt-Constraints).
 - **Light/Dark** folgt dem NetBox-Theme.
@@ -105,6 +119,9 @@ docker compose exec netbox /opt/netbox/netbox/manage.py collectstatic --no-input
 | Datenfluss anlegen / bearbeiten / löschen | `add` / `change` / `delete` auf *service connection* |
 | Hops anhängen / umsortieren / entfernen | `add` / `change` / `delete` auf *connection hop* |
 | „Läuft auf“ setzen, neuer Service | `change` / `add` auf *ipam › service* |
+| Service im Knoten-Panel bearbeiten | `change` auf *ipam › service* |
+| Application anlegen / im Knoten-Panel bearbeiten | `add` / `change` auf *application* |
+| Notizen | `change` auf den Canvas + `add`/`change`/`delete` auf *canvas note* |
 
 ---
 
@@ -114,7 +131,7 @@ Basis: `/api/plugins/service-canvas/`
 
 | Endpunkt | |
 |---|---|
-| `connections/`, `connection-hops/`, `canvases/`, `canvas-groups/`, `canvas-nodes/` | Standard-NetBox-CRUD inkl. Bulk, Filter, Brief-Mode |
+| `applications/`, `connections/`, `connection-hops/`, `canvases/`, `canvas-groups/`, `canvas-nodes/`, `canvas-notes/` | Standard-NetBox-CRUD inkl. Bulk, Filter, Brief-Mode |
 | `GET canvases/<id>/graph/?include=<key>,…` | alles für den Editor in einer Anfrage: Layout, Objekt-Beschreibungen, Kanten |
 | `GET canvases/<id>/missing/` | verwandte, noch nicht platzierte Objekte |
 | `GET/PUT canvases/<id>/layout/` | Layout lesen / atomar speichern (siehe unten) |
@@ -132,17 +149,20 @@ PUT /api/plugins/service-canvas/canvases/1/layout/
     {"id": 17, "x": 40, "y": 60, "group_key": "g1"},
     {"object_type": "ipam.service", "object_id": 12, "x": 300, "y": 60, "group": null}
   ],
+  "notes": [{"key": "n1", "text": "Wartung Freitag", "color": "ffe082", "x": 700, "y": 0, "width": 220, "height": 140}],
   "deleted_nodes": [5],
-  "deleted_groups": []
+  "deleted_groups": [],
+  "deleted_notes": []
 }
 ```
 
 Lässt man `group`/`group_key` weg, bleibt die Gruppenzugehörigkeit eines bestehenden Knotens unverändert.
-`"group": null` löst den Knoten aus seiner Gruppe. Die Antwort enthält `created_groups`/`created_nodes`
+`"group": null` löst den Knoten aus seiner Gruppe. Die Antwort enthält `created_groups`/`created_nodes`/`created_notes`
 (Client-Key → neue ID) und die Zähler `updated`/`deleted`.
 
 GraphQL: `service_canvas_connection(_list)`, `service_canvas_connection_hop(_list)`, `service_canvas_canvas(_list)`,
-`service_canvas_group(_list)`, `service_canvas_node(_list)`.
+`service_canvas_group(_list)`, `service_canvas_node(_list)`, `service_canvas_note(_list)`,
+`service_canvas_application(_list)`.
 
 ---
 

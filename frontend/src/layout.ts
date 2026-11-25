@@ -1,11 +1,11 @@
 import type { ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api';
-import { type CanvasEdge, type CanvasNode, isGroupNode, nodeSize, snap } from './graph';
+import { type CanvasEdge, type CanvasNode, isGroupNode, isNoteNode, nodeSize, snap } from './graph';
 
 const GROUP_PADDING = '[top=50,left=30,bottom=30,right=30]';
 
 /**
  * Automatic layout with ELK (layered, left to right). Groups are laid out as compound nodes, so their members stay
- * inside. elkjs is loaded lazily (separate chunk) because it is large and only needed on demand.
+ * inside. Notes keep their position. elkjs is loaded lazily (separate chunk) because it is large and only needed on demand.
  */
 export async function autoLayout(
   nodes: CanvasNode[],
@@ -19,6 +19,7 @@ export async function autoLayout(
   const children = new Map<string, ElkNode[]>();
   const top: ElkNode[] = [];
   for (const n of nodes) {
+    if (isNoteNode(n)) continue;
     const size = nodeSize(n);
     const elkNode: ElkNode = isGroupNode(n)
       ? { id: n.id, layoutOptions: { 'elk.padding': GROUP_PADDING }, children: [] }
@@ -42,7 +43,7 @@ export async function autoLayout(
     }
   }
 
-  const ids = new Set(nodes.map((n) => n.id));
+  const ids = new Set(nodes.filter((n) => !isNoteNode(n)).map((n) => n.id));
   const elkEdges: ElkExtendedEdge[] = edges
     .filter((e) => ids.has(e.source) && ids.has(e.target))
     // "runs on" edges point from the service to its host; reversed, hosts end up left of their services

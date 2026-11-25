@@ -1,11 +1,22 @@
 import strawberry
 import strawberry_django
 
-from .types import CanvasGroupType, CanvasNodeType, CanvasType, ConnectionHopType, ServiceConnectionType
+from .types import (
+    ApplicationType,
+    CanvasGroupType,
+    CanvasNodeType,
+    CanvasNoteType,
+    CanvasType,
+    ConnectionHopType,
+    ServiceConnectionType,
+)
 
 
 @strawberry.type(name='Query')
 class ServiceCanvasQuery:
+    service_canvas_application: ApplicationType = strawberry_django.field()
+    service_canvas_application_list: list[ApplicationType] = strawberry_django.field()
+
     service_canvas_connection: ServiceConnectionType = strawberry_django.field()
     service_canvas_connection_list: list[ServiceConnectionType] = strawberry_django.field()
 
@@ -20,6 +31,9 @@ class ServiceCanvasQuery:
 
     service_canvas_node: CanvasNodeType = strawberry_django.field()
     service_canvas_node_list: list[CanvasNodeType] = strawberry_django.field()
+
+    service_canvas_note: CanvasNoteType = strawberry_django.field()
+    service_canvas_note_list: list[CanvasNoteType] = strawberry_django.field()
 
 
 schema = [ServiceCanvasQuery]

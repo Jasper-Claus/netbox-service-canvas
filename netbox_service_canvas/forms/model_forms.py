@@ -4,8 +4,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Site
+from ipam.models import Service
 from netbox.forms import NetBoxModelForm, PrimaryModelForm
-from utilities.forms.fields import ContentTypeChoiceField, DynamicModelChoiceField
+from utilities.forms.fields import ContentTypeChoiceField, DynamicModelChoiceField, DynamicModelMultipleChoiceField
 from utilities.forms.rendering import FieldSet, InlineFields
 from utilities.forms.utils import get_field_value
 from utilities.forms.widgets import HTMXSelect
@@ -13,9 +14,10 @@ from utilities.templatetags.builtins.filters import bettertitle
 from virtualization.models import Cluster
 
 from ..constants import CONNECTION_ENDPOINT_MODELS, HOP_OBJECT_MODELS
-from ..models import Canvas, ConnectionHop, ServiceConnection
+from ..models import Application, Canvas, ConnectionHop, ServiceConnection
 
 __all__ = (
+    'ApplicationForm',
     'CanvasForm',
     'ConnectionHopForm',
     'ServiceConnectionForm',
@@ -181,3 +183,21 @@ class CanvasForm(PrimaryModelForm):
     class Meta:
         model = Canvas
         fields = ('name', 'site', 'cluster', 'description', 'owner', 'comments', 'tags')
+
+
+class ApplicationForm(PrimaryModelForm):
+    services = DynamicModelMultipleChoiceField(
+        label=_('Services'),
+        queryset=Service.objects.all(),
+        required=False,
+        help_text=_('The NetBox services this application consists of'),
+    )
+
+    fieldsets = (
+        FieldSet('name', 'status', 'version', 'web_url', 'description', 'tags', name=_('Application')),
+        FieldSet('services', name=_('Services')),
+    )
+
+    class Meta:
+        model = Application
+        fields = ('name', 'status', 'version', 'web_url', 'services', 'description', 'owner', 'comments', 'tags')

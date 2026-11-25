@@ -96,6 +96,20 @@ export const CORE_ENDPOINTS: Record<string, string> = {
   'vpn.tunnel': 'vpn/tunnels/',
 };
 
+/** This plugin's own list endpoints, relative to the plugin API root. */
+export const PLUGIN_ENDPOINTS: Record<string, string> = {
+  'netbox_service_canvas.application': 'applications/',
+};
+
+export interface ApplicationData {
+  name?: string;
+  status?: string;
+  version?: string;
+  web_url?: string;
+  description?: string;
+  services?: number[];
+}
+
 export class Api {
   private root: string;
   private plugin: string;
@@ -126,23 +140,46 @@ export class Api {
     return request<GraphResponse & {
       created_groups: Record<string, number>;
       created_nodes: Record<string, number>;
+      created_notes: Record<string, number>;
       updated: number;
       deleted: number;
     }>('PUT', this.canvasUrl('layout/'), payload);
   }
 
+  /** List URL for an "app.model" label (NetBox core or this plugin). */
+  listUrl(label: string): string {
+    if (PLUGIN_ENDPOINTS[label]) return `${this.plugin}${PLUGIN_ENDPOINTS[label]}`;
+    return `${this.root}${CORE_ENDPOINTS[label]}`;
+  }
+
   search(label: string, q: string, limit = 25, extra: Record<string, string | number | undefined> = {}) {
-    const endpoint = CORE_ENDPOINTS[label];
     return request<ListResponse<BriefObject>>(
       'GET',
-      `${this.root}${endpoint}${query({ q, limit, brief: 1, ordering: 'name', ...extra })}`,
+      `${this.listUrl(label)}${query({ q, limit, brief: 1, ordering: 'name', ...extra })}`,
     );
   }
 
   /** Searches "app.model" objects without `ordering` (not every model has a name field). */
   searchAny(label: string, q: string, limit = 25) {
-    const endpoint = CORE_ENDPOINTS[label];
-    return request<ListResponse<BriefObject>>('GET', `${this.root}${endpoint}${query({ q, limit, brief: 1 })}`);
+    return request<ListResponse<BriefObject>>('GET', `${this.listUrl(label)}${query({ q, limit, brief: 1 })}`);
+  }
+
+  updateService(id: number, data: Record<string, unknown>) {
+    return request<{ id: number }>('PATCH', `${this.root}ipam/services/${id}/`, data);
+  }
+
+  createApplication(data: ApplicationData) {
+    return request<{ id: number }>('POST', `${this.plugin}applications/`, data);
+  }
+
+  getApplication(id: number) {
+    return request<Omit<ApplicationData, 'services'> & { id: number; services: BriefObject[] }>(
+      'GET', `${this.plugin}applications/${id}/`,
+    );
+  }
+
+  updateApplication(id: number, data: ApplicationData) {
+    return request<{ id: number }>('PATCH', `${this.plugin}applications/${id}/`, data);
   }
 
   createService(data: {

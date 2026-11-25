@@ -1,6 +1,6 @@
 # TODO – netbox-service-canvas
 
-**Stand 2026-11-25:** Phasen 1–6 als Code fertig · lokal geprüft: Lint, Imports, URLs, Templates, Static, `manage.py check`, GraphQL, Vitest (15/15), Frontend-Build, Editor-Smoke-Test im Browser mit Mock-API · **Django-Tests noch nicht ausgeführt** (laufen auf der Ubuntu-VM) · offen: Gruppen-Autobefüllung (Cluster/Site/Tag), Services im Parent-Container, Screenshots, Kompatibilitäts-Check auf rick
+**Stand 2026-11-25:** Phasen 1–6 als Code fertig, dazu Phase 7 (Applications, Notizen, Impact-Analyse, Knoten-Panel, A4-PDF, Changelog-Fix) · lokal geprüft: Lint, Imports, URLs, Templates, Static, `manage.py check`, `makemigrations --check`, GraphQL, Vitest (21/21), Frontend-Build · **Django-Tests noch nicht ausgeführt** (laufen auf der Ubuntu-VM) · offen: Gruppen-Autobefüllung (Cluster/Site/Tag), Services im Parent-Container, Screenshots, Kompatibilitäts-Check auf rick
 
 Legende: `[ ]` offen · `[x]` erledigt · ⏸ = Stopp, Ergebnis zeigen und auf Freigabe warten
 
@@ -116,3 +116,15 @@ Legende: `[ ]` offen · `[x]` erledigt · ⏸ = Stopp, Ergebnis zeigen und auf F
   - [x] `migrate` + `collectstatic --no-input` (ohne `--clear`)
   - [x] Update-Anleitung
   - [x] Deinstallation (`migrate netbox_service_canvas zero`, Eintrag entfernen, Rebuild)
+
+## 8. Phase 7 – Feedback aus dem ersten Test ⏸
+- [x] Changelog/Journal: Base-Templates `netbox_service_canvas/<model>.html` (TemplateDoesNotExist behoben)
+- [x] Applications (Modell, UI, API, GraphQL, Suche, CSV-Import, Panel auf Service/Device/VM, Migration 0002)
+- [x] Abhängigkeits-Tabelle: Tab „Connections“ auch für Applications, Filter `application_id`
+- [x] Notizen auf der Canvas (Modell `CanvasNote`, Layout-Endpunkt, Editor)
+- [x] Knoten-Panel: Details, Schnellbearbeitung (Service/Application), NetBox-Formular mit Rücksprung, entfernen
+- [x] Impact-Analyse im Editor
+- [x] Export als DIN-A4-PDF (jsPDF, lazy geladen)
+- [x] Dialoge „Neuer Service“ / „Neue Application“ und Seitenleiste überarbeitet
+- [ ] Django-Tests auf der VM laufen lassen (neue Tests für Applications, Notizen, Changelog-Tabs)
+- [ ] Im Browser durchklicken (Checkliste in dev/README.md, Punkte 5–7)

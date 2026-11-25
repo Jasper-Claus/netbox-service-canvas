@@ -22,6 +22,20 @@ export const STATUSES: Array<[string, string]> = [
   ['disabled', 'Disabled'],
 ];
 
+export const APPLICATION_STATUSES: Array<[string, string]> = [
+  ['active', 'Active'],
+  ['planned', 'Planned'],
+  ['staging', 'Staging'],
+  ['decommissioning', 'Decommissioning'],
+  ['offline', 'Offline'],
+];
+
+export const SERVICE_TRANSPORTS: Array<[string, string]> = [
+  ['tcp', 'TCP'],
+  ['udp', 'UDP'],
+  ['sctp', 'SCTP'],
+];
+
 export const HOP_TYPES = [
   { label: 'ipam.service', title: 'Service' },
   { label: 'dcim.interface', title: 'Interface' },

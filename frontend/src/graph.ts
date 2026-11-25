@@ -5,18 +5,24 @@
 import { MarkerType, type Edge, type Node } from '@xyflow/react';
 import type {
   Flow,
+  GraphEdges,
   GraphResponse,
   LayoutPayload,
   ObjectDescriptor,
+  PartOf,
   RunsOn,
   SnapGroup,
   SnapNode,
+  SnapNote,
   Snapshot,
 } from './types';
 
 export const NODE_WIDTH = 220;
 export const NODE_HEIGHT = 64;
 export const GROUP_PREFIX = 'group:';
+export const NOTE_PREFIX = 'note:';
+export const NOTE_WIDTH = 220;
+export const NOTE_HEIGHT = 140;
 
 export type ObjectNodeData = {
   kind: 'object';
@@ -34,11 +40,26 @@ export type GroupNodeData = {
   color: string;
 };
 
-export type ObjectNode = Node<ObjectNodeData, 'object'>;
-export type GroupNode = Node<GroupNodeData, 'group'>;
-export type CanvasNode = ObjectNode | GroupNode;
+export type NoteNodeData = {
+  kind: 'note';
+  clientKey: string;
+  dbId: number | null;
+  text: string;
+  color: string;
+};
 
-export type FlowEdgeData = { kind: 'flow'; flow: Flow } | { kind: 'runs_on'; runsOn: RunsOn };
+/** Impact analysis highlight of a node: the analysed object, directly or indirectly affected, or unaffected. */
+export type ImpactRole = 'root' | 'direct' | 'indirect' | 'none';
+
+export type ObjectNode = Node<ObjectNodeData & { impact?: ImpactRole }, 'object'>;
+export type GroupNode = Node<GroupNodeData, 'group'>;
+export type NoteNode = Node<NoteNodeData, 'note'>;
+export type CanvasNode = ObjectNode | GroupNode | NoteNode;
+
+export type FlowEdgeData =
+  | { kind: 'flow'; flow: Flow }
+  | { kind: 'runs_on'; runsOn: RunsOn }
+  | { kind: 'part_of'; partOf: PartOf };
 export type CanvasEdge = Edge<FlowEdgeData>;
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -69,10 +90,21 @@ export function isObjectNode(node: CanvasNode): node is ObjectNode {
   return node.type === 'object';
 }
 
+export function isNoteNode(node: CanvasNode): node is NoteNode {
+  return node.type === 'note';
+}
+
+export function noteNodeId(clientKey: string): string {
+  return NOTE_PREFIX + clientKey;
+}
+
+export const APPLICATION_LABEL = 'netbox_service_canvas.application';
+
 export const LABEL_TO_TYPE: Record<string, ObjectDescriptor['type']> = {
   'dcim.device': 'device',
   'virtualization.virtualmachine': 'virtualmachine',
   'ipam.service': 'service',
+  [APPLICATION_LABEL]: 'application',
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -178,6 +210,10 @@ export function groupKeyForDb(id: number): string {
   return `db-${id}`;
 }
 
+/** Client keys of notes share the generator of groups; both only need to be unique within the page. */
+export const newNoteKey = newGroupKey;
+export const noteKeyForDb = groupKeyForDb;
+
 export function buildNodes(graph: GraphResponse, grid: number): CanvasNode[] {
   const groups: GroupNode[] = graph.groups.map((g) => ({
     id: groupNodeId(groupKeyForDb(g.id)),
@@ -199,7 +235,16 @@ export function buildNodes(graph: GraphResponse, grid: number): CanvasNode[] {
       data: { kind: 'object', key, dbId: n.id, desc: graph.objects[key] ?? null },
     };
   });
-  return [...groups, ...objects];
+  const notes: NoteNode[] = (graph.notes ?? []).map((n) => ({
+    id: noteNodeId(noteKeyForDb(n.id)),
+    type: 'note',
+    position: { x: n.x, y: n.y },
+    style: { width: n.width, height: n.height },
+    width: n.width,
+    height: n.height,
+    data: { kind: 'note', clientKey: noteKeyForDb(n.id), dbId: n.id, text: n.text, color: n.color },
+  }));
+  return [...groups, ...notes, ...objects];
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -254,8 +299,23 @@ export function runsOnEdge(r: RunsOn): CanvasEdge {
   };
 }
 
+export function partOfEdge(p: PartOf): CanvasEdge {
+  return {
+    id: p.id,
+    source: p.source,
+    target: p.target,
+    type: 'straight',
+    className: 'nsc-edge-part-of',
+    style: { strokeDasharray: '1 5', strokeWidth: 2.5, strokeLinecap: 'round' },
+    selectable: false,
+    focusable: false,
+    deletable: false,
+    data: { kind: 'part_of', partOf: p },
+  };
+}
+
 export function buildEdges(
-  edges: GraphResponse['edges'],
+  edges: GraphEdges,
   present: Set<string>,
   options: { showRunsOn: boolean } = { showRunsOn: true },
 ): CanvasEdge[] {
@@ -263,6 +323,9 @@ export function buildEdges(
   if (options.showRunsOn) {
     for (const r of edges.runs_on) {
       if (present.has(r.source) && present.has(r.target)) result.push(runsOnEdge(r));
+    }
+    for (const p of edges.part_of ?? []) {
+      if (present.has(p.source) && present.has(p.target)) result.push(partOfEdge(p));
     }
   }
   for (const f of edges.flows) {
@@ -276,7 +339,21 @@ export function buildEdges(
 // ---------------------------------------------------------------------------------------------------------------------
 
 export function snapshotFromNodes(nodes: CanvasNode[], grid: number): Snapshot {
-  const snapshot: Snapshot = { nodes: {}, groups: {} };
+  const snapshot: Snapshot = { nodes: {}, groups: {}, notes: {} };
+  for (const n of nodes) {
+    if (!isNoteNode(n)) continue;
+    const size = nodeSize(n);
+    snapshot.notes[n.data.clientKey] = {
+      clientKey: n.data.clientKey,
+      dbId: n.data.dbId,
+      text: n.data.text,
+      color: n.data.color,
+      x: snap(n.position.x, grid),
+      y: snap(n.position.y, grid),
+      width: snap(size.width, grid),
+      height: snap(size.height, grid),
+    };
+  }
   const groupKeyById = new Map<string, string>();
   for (const n of nodes) {
     if (!isGroupNode(n)) continue;
@@ -313,6 +390,11 @@ function sameGroup(a: SnapGroup, b: SnapGroup): boolean {
     && a.height === b.height;
 }
 
+function sameNote(a: SnapNote, b: SnapNote): boolean {
+  return a.text === b.text && a.color === b.color && a.x === b.x && a.y === b.y && a.width === b.width
+    && a.height === b.height;
+}
+
 function sameNode(a: SnapNode, b: SnapNode): boolean {
   return a.x === b.x && a.y === b.y && a.groupKey === b.groupKey && a.width === b.width && a.height === b.height;
 }
@@ -321,7 +403,23 @@ function sameNode(a: SnapNode, b: SnapNode): boolean {
  * Compute the minimal layout payload that turns `saved` into `current`. Returns null when nothing changed.
  */
 export function diffLayout(saved: Snapshot, current: Snapshot): LayoutPayload | null {
-  const payload: LayoutPayload = { groups: [], nodes: [], deleted_nodes: [], deleted_groups: [] };
+  const payload: LayoutPayload = {
+    groups: [], nodes: [], notes: [], deleted_nodes: [], deleted_groups: [], deleted_notes: [],
+  };
+
+  for (const n of Object.values(current.notes ?? {})) {
+    const before = saved.notes?.[n.clientKey];
+    if (before && before.dbId !== null && sameNote(before, n)) continue;
+    const item: Record<string, unknown> = {
+      text: n.text, color: n.color, x: n.x, y: n.y, width: n.width, height: n.height,
+    };
+    if (n.dbId !== null) item.id = n.dbId;
+    else item.key = n.clientKey;
+    payload.notes.push(item);
+  }
+  for (const n of Object.values(saved.notes ?? {})) {
+    if (!current.notes?.[n.clientKey] && n.dbId !== null) payload.deleted_notes.push(n.dbId);
+  }
 
   for (const g of Object.values(current.groups)) {
     const before = saved.groups[g.clientKey];
@@ -365,7 +463,7 @@ export function diffLayout(saved: Snapshot, current: Snapshot): LayoutPayload | 
   }
 
   const empty = !payload.groups.length && !payload.nodes.length && !payload.deleted_nodes.length
-    && !payload.deleted_groups.length;
+    && !payload.deleted_groups.length && !payload.notes.length && !payload.deleted_notes.length;
   return empty ? null : payload;
 }
 
@@ -374,7 +472,12 @@ export function applySaveResult(
   sent: Snapshot,
   createdGroups: Record<string, number>,
   createdNodes: Record<string, number>,
+  createdNotes: Record<string, number> = {},
 ): Snapshot {
+  const notes: Record<string, SnapNote> = {};
+  for (const [k, n] of Object.entries(sent.notes ?? {})) {
+    notes[k] = { ...n, dbId: n.dbId ?? createdNotes[k] ?? null };
+  }
   const groups: Record<string, SnapGroup> = {};
   for (const [k, g] of Object.entries(sent.groups)) {
     groups[k] = { ...g, dbId: g.dbId ?? createdGroups[k] ?? null };
@@ -383,7 +486,7 @@ export function applySaveResult(
   for (const [k, n] of Object.entries(sent.nodes)) {
     nodes[k] = { ...n, dbId: n.dbId ?? createdNodes[k] ?? null };
   }
-  return { groups, nodes };
+  return { groups, nodes, notes };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -436,4 +539,75 @@ export function placeNew(
     }
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Impact analysis
+// ---------------------------------------------------------------------------------------------------------------------
+
+export interface Impact {
+  root: string;
+  /** Objects that fail together with the root: services on a failed host, applications of failed services. */
+  direct: Set<string>;
+  /** Objects that depend on a failed object through a data flow (source -> failed target), transitively. */
+  indirect: Set<string>;
+  /** Data flows whose target (or, for bidirectional flows, either end) has failed. */
+  flows: Set<number>;
+}
+
+/**
+ * "What breaks if <root> fails?" – evaluated on the edges known to the canvas.
+ *   1. Structural failure: host -> services running on it -> applications made of those services.
+ *   2. Dependents: whoever sends data to a failed object loses that dependency (and so on, transitively).
+ */
+export function computeImpact(root: string, edges: GraphEdges): Impact {
+  const direct = new Set<string>([root]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const r of edges.runs_on) {
+      if (direct.has(r.target) && !direct.has(r.source)) {
+        direct.add(r.source);
+        changed = true;
+      }
+    }
+    for (const p of edges.part_of ?? []) {
+      if (direct.has(p.source) && !direct.has(p.target)) {
+        direct.add(p.target);
+        changed = true;
+      }
+    }
+  }
+
+  const failed = new Set(direct);
+  const indirect = new Set<string>();
+  const flows = new Set<number>();
+  changed = true;
+  while (changed) {
+    changed = false;
+    for (const f of edges.flows) {
+      if (f.status === 'disabled') continue;
+      const hits: Array<[string, string]> = [[f.target, f.source]];
+      if (f.direction === 'bi') hits.push([f.source, f.target]);
+      for (const [failedEnd, dependent] of hits) {
+        if (!failed.has(failedEnd)) continue;
+        flows.add(f.id);
+        if (!failed.has(dependent)) {
+          failed.add(dependent);
+          indirect.add(dependent);
+          changed = true;
+        }
+      }
+    }
+  }
+  direct.delete(root);
+  return { root, direct, indirect, flows };
+}
+
+export function impactRole(impact: Impact | null, key: string): ImpactRole | undefined {
+  if (!impact) return undefined;
+  if (key === impact.root) return 'root';
+  if (impact.direct.has(key)) return 'direct';
+  if (impact.indirect.has(key)) return 'indirect';
+  return 'none';
 }

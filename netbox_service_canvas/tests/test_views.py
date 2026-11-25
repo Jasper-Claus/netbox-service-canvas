@@ -6,7 +6,7 @@ from extras.models import Tag
 from ipam.models import VRF, Service
 from utilities.testing import TestCase, ViewTestCases, create_tags
 
-from ..models import Canvas, ConnectionHop, ServiceConnection
+from ..models import Application, Canvas, ConnectionHop, ServiceConnection
 from .utils import create_base_objects, create_connection
 
 
@@ -131,6 +131,76 @@ class CanvasViewTest(PluginURLMixin, ViewTestCases.PrimaryObjectViewTestCase):
         }
 
 
+class ApplicationViewTest(PluginURLMixin, ViewTestCases.PrimaryObjectViewTestCase):
+    model = Application
+
+    @classmethod
+    def setUpTestData(cls):
+        o = create_base_objects()
+        apps = (
+            Application.objects.create(name='Grafana'),
+            Application.objects.create(name='Prometheus'),
+            Application.objects.create(name='Paperless'),
+        )
+        apps[0].services.set([o['grafana']])
+        tags = create_tags('Alpha', 'Bravo', 'Charlie')
+        cls.form_data = {
+            'name': 'Home Assistant',
+            'status': 'planned',
+            'version': '2026.11',
+            'web_url': 'https://ha.example.com',
+            'services': [o['speedtest'].pk, o['traefik'].pk],
+            'description': 'Smart home',
+            'tags': [t.pk for t in tags],
+        }
+        cls.csv_data = (
+            'name,status,version,services',
+            f"Traefik,active,3.2,{o['traefik'].pk}",
+            f"Speedtest Tracker,planned,,{o['speedtest'].pk}",
+            'Nextcloud,,29,',
+        )
+        cls.csv_update_data = (
+            'id,version',
+            f'{apps[0].pk},1',
+            f'{apps[1].pk},2',
+            f'{apps[2].pk},3',
+        )
+        cls.bulk_edit_data = {
+            'status': 'offline',
+            'version': 'latest',
+        }
+
+
+class ApplicationTabsTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.o = create_base_objects()
+        cls.app = Application.objects.create(name='Grafana')
+        cls.app.services.set([cls.o['grafana']])
+        create_connection(cls.o['speedtest'], cls.o['grafana'], data_description='Speedtest results')
+
+    def test_services_tab(self):
+        self.add_permissions('netbox_service_canvas.view_application', 'ipam.view_service')
+        url = reverse('plugins:netbox_service_canvas:application_services', kwargs={'pk': self.app.pk})
+        response = self.client.get(url)
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, 'grafana')
+
+    def test_connections_tab_includes_services(self):
+        self.add_permissions('netbox_service_canvas.view_application', 'netbox_service_canvas.view_serviceconnection')
+        url = reverse('plugins:netbox_service_canvas:application_service_connections', kwargs={'pk': self.app.pk})
+        response = self.client.get(url)
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, 'Speedtest results')
+
+    def test_applications_panel_on_service(self):
+        self.add_permissions('ipam.view_service', 'netbox_service_canvas.view_application')
+        response = self.client.get(self.o['grafana'].get_absolute_url())
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, 'Applications')
+
+
 class ConnectionsTabTest(TestCase):
     """
     "Connections" tab on Device, VirtualMachine and Service.
@@ -162,6 +232,33 @@ class ConnectionsTabTest(TestCase):
         self.assertHttpStatus(self.client.get(url), 200)
 
 
+class FeatureTabsTest(TestCase):
+    """
+    Changelog and journal tabs need a <model_name>.html base template per model.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        o = create_base_objects()
+        connection = create_connection(o['speedtest'], o['grafana'])
+        cls.objects = (
+            Application.objects.create(name='Grafana'),
+            Canvas.objects.create(name='Homelab'),
+            connection,
+            ConnectionHop.objects.create(connection=connection, order=1, object=VRF.objects.create(name='Tailscale')),
+        )
+
+    def test_changelog_and_journal(self):
+        self.user.is_superuser = True
+        self.user.save()
+        for obj in self.objects:
+            name = obj._meta.model_name
+            for tab in ('changelog', 'journal'):
+                with self.subTest(model=name, tab=tab):
+                    url = reverse(f'plugins:netbox_service_canvas:{name}_{tab}', kwargs={'pk': obj.pk})
+                    self.assertHttpStatus(self.client.get(url), 200)
+
+
 class CanvasEditorViewTest(TestCase):
 
     @classmethod
@@ -183,6 +280,8 @@ class CanvasEditorViewTest(TestCase):
         perms = response.context['editor_config']['perms']
         self.assertFalse(perms['edit_layout'])
         self.assertFalse(perms['add_connection'])
+        self.assertFalse(perms['edit_notes'])
+        self.assertFalse(perms['add_application'])
 
     def test_editor_edit_flags(self):
         self.add_permissions(
@@ -195,4 +294,18 @@ class CanvasEditorViewTest(TestCase):
         self.assertTrue(perms['edit_layout'])
         self.assertFalse(perms['edit_groups'])
         self.assertTrue(perms['add_connection'])
+        self.assertFalse(perms['edit_notes'])
         self.assertEqual(response.context['editor_config']['focus'], 'dcim.device:1')
+
+    def test_editor_note_and_application_flags(self):
+        self.add_permissions(
+            'netbox_service_canvas.view_canvas', 'netbox_service_canvas.change_canvas',
+            'netbox_service_canvas.add_canvasnote', 'netbox_service_canvas.change_canvasnote',
+            'netbox_service_canvas.delete_canvasnote', 'netbox_service_canvas.add_application',
+            'netbox_service_canvas.change_application',
+        )
+        perms = self.client.get(self.url()).context['editor_config']['perms']
+        self.assertTrue(perms['edit_notes'])
+        self.assertTrue(perms['add_application'])
+        self.assertTrue(perms['change_application'])
+        self.assertFalse(perms['edit_layout'])

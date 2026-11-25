@@ -19,27 +19,37 @@ import {
 import { toPng, toSvg } from 'html-to-image';
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { Api, ApiError } from './api';
+import { NewApplicationModal } from './components/ApplicationModal';
 import { ConnectDialog } from './components/ConnectDialog';
 import { EdgePanel } from './components/EdgePanel';
 import { GroupNode } from './components/GroupNode';
 import { NewServiceModal } from './components/NewServiceModal';
+import { NodePanel } from './components/NodePanel';
+import { NoteNode } from './components/NoteNode';
 import { ObjectNode } from './components/ObjectNode';
 import { DRAG_MIME, Sidebar } from './components/Sidebar';
 import { Toolbar, type SaveState } from './components/Toolbar';
-import { EditorContext, type EditorContextValue, type GroupUpdate } from './context';
+import { EditorContext, type EditorContextValue, type GroupUpdate, type NoteUpdate } from './context';
 import {
   NODE_HEIGHT,
   NODE_WIDTH,
+  NOTE_HEIGHT,
+  NOTE_WIDTH,
   absolutePosition,
   applySaveResult,
   buildEdges,
   buildNodes,
+  computeImpact,
   diffLayout,
   findGroupAt,
   groupNodeId,
+  impactRole,
   isGroupNode,
+  isNoteNode,
   isObjectNode,
   newGroupKey,
+  newNoteKey,
+  noteNodeId,
   nodeSize,
   parseKey,
   placeNew,
@@ -50,13 +60,14 @@ import {
   type CanvasEdge,
   type CanvasNode,
   type GroupNode as GroupNodeType,
+  type NoteNode as NoteNodeType,
   type ObjectNode as ObjectNodeType,
 } from './graph';
 import { autoLayout } from './layout';
 import type { EditorConfig, GraphResponse, ObjectDescriptor, Snapshot } from './types';
 import { downloadDataUrl, slugify } from './util';
 
-const nodeTypes = { object: ObjectNode, group: GroupNode };
+const nodeTypes = { object: ObjectNode, group: GroupNode, note: NoteNode };
 const AUTOSAVE_DELAY = 800;
 
 interface Toast {
@@ -108,7 +119,9 @@ function Editor({ config }: { config: EditorConfig }) {
   const grid = config.grid_size || 10;
   const canEditLayout = perms.edit_layout;
   const canEdit = canEditLayout || perms.add_connection || perms.change_connection || perms.change_service
-    || perms.add_service;
+    || perms.add_service || perms.add_application || perms.change_application || perms.edit_notes;
+  // Notes are stored together with the layout
+  const canSaveLayout = canEditLayout || perms.edit_notes;
   const storagePrefix = `nsc:${config.canvas.id}:`;
 
   const { screenToFlowPosition, fitView } = useReactFlow<CanvasNode, CanvasEdge>();
@@ -119,7 +132,7 @@ function Editor({ config }: { config: EditorConfig }) {
   const nodesRef = useRef<CanvasNode[]>(nodes);
   nodesRef.current = nodes;
 
-  const [graphEdges, setGraphEdges] = useState<GraphResponse['edges']>({ runs_on: [], flows: [] });
+  const [graphEdges, setGraphEdges] = useState<GraphResponse['edges']>({ runs_on: [], part_of: [], flows: [] });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -127,20 +140,24 @@ function Editor({ config }: { config: EditorConfig }) {
   const [readOnlyPref, toggleReadOnly] = useStoredFlag(`${storagePrefix}readonly`, false);
   const readOnly = !canEdit || readOnlyPref;
   const layoutEditable = !readOnly && canEditLayout;
+  const notesEditable = !readOnly && perms.edit_notes;
   const [autosave, toggleAutosave] = useStoredFlag('nsc:autosave', true);
   const [snapToGrid, toggleSnap] = useStoredFlag('nsc:snap', true);
   const [minimap, toggleMinimap] = useStoredFlag('nsc:minimap', true);
   const [showRunsOn, toggleRunsOn] = useStoredFlag('nsc:runs-on', true);
   const [sidebar, toggleSidebar] = useStoredFlag('nsc:sidebar', true);
 
-  const savedRef = useRef<Snapshot>({ nodes: {}, groups: {} });
+  const savedRef = useRef<Snapshot>({ nodes: {}, groups: {}, notes: {} });
   const savingRef = useRef(false);
   const pendingSaveRef = useRef(false);
   const [saveState, setSaveState] = useState<SaveState>('saved');
 
   const [selectedFlowId, setSelectedFlowId] = useState<number | null>(null);
+  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
+  const [impactRoot, setImpactRoot] = useState<string | null>(null);
+  const [newApplication, setNewApplication] = useState<{ services: Array<{ id: number; display: string }> } | null>(null);
   const [pendingConnect, setPendingConnect] = useState<{ source: ObjectDescriptor; target: ObjectDescriptor } | null>(null);
-  const [newService, setNewService] = useState<{ parent: { label: string; id: number } | null } | null>(null);
+  const [newService, setNewService] = useState<{ parent: { label: string; id: number; name?: string } | null } | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const notify = useCallback((message: string, kind: Toast['kind'] = 'info') => {
@@ -219,7 +236,7 @@ function Editor({ config }: { config: EditorConfig }) {
   // -------------------------------------------------------------------------------------------------------------------
 
   const save = useCallback(async () => {
-    if (!canEditLayout) return;
+    if (!canSaveLayout) return;
     if (savingRef.current) {
       pendingSaveRef.current = true;
       return;
@@ -234,7 +251,7 @@ function Editor({ config }: { config: EditorConfig }) {
     setSaveState('saving');
     try {
       const result = await api.saveLayout(payload);
-      savedRef.current = applySaveResult(current, result.created_groups, result.created_nodes);
+      savedRef.current = applySaveResult(current, result.created_groups, result.created_nodes, result.created_notes ?? {});
       // Store the new database IDs on the nodes
       setNodes((ns) => ns.map((n) => {
         if (isObjectNode(n) && n.data.dbId === null && result.created_nodes[n.data.key]) {
@@ -242,6 +259,9 @@ function Editor({ config }: { config: EditorConfig }) {
         }
         if (isGroupNode(n) && n.data.dbId === null && result.created_groups[n.data.clientKey]) {
           return { ...n, data: { ...n.data, dbId: result.created_groups[n.data.clientKey] } };
+        }
+        if (isNoteNode(n) && n.data.dbId === null && result.created_notes?.[n.data.clientKey]) {
+          return { ...n, data: { ...n.data, dbId: result.created_notes[n.data.clientKey] } };
         }
         return n;
       }));
@@ -256,11 +276,11 @@ function Editor({ config }: { config: EditorConfig }) {
         window.setTimeout(() => void save(), 0);
       }
     }
-  }, [api, canEditLayout, grid, notify, setNodes]);
+  }, [api, canSaveLayout, grid, notify, setNodes]);
 
   // Detect changes and autosave
   useEffect(() => {
-    if (loading || !canEditLayout) return;
+    if (loading || !canSaveLayout) return;
     if (nodes.some((n) => n.dragging || n.resizing)) return;
     const payload = diffLayout(savedRef.current, snapshotFromNodes(nodes, grid));
     if (!payload) {
@@ -271,7 +291,7 @@ function Editor({ config }: { config: EditorConfig }) {
     if (!autosave || readOnly) return;
     const timer = window.setTimeout(() => void save(), AUTOSAVE_DELAY);
     return () => window.clearTimeout(timer);
-  }, [nodes, autosave, readOnly, loading, canEditLayout, grid, save]);
+  }, [nodes, autosave, readOnly, loading, canSaveLayout, grid, save]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -293,12 +313,45 @@ function Editor({ config }: { config: EditorConfig }) {
     [nodes],
   );
 
+  const impact = useMemo(
+    () => (impactRoot ? computeImpact(impactRoot, graphEdges) : null),
+    [impactRoot, graphEdges],
+  );
+
   const edges = useMemo(() => {
     const list = buildEdges(graphEdges, placedKeys, { showRunsOn });
-    return list.map((e) => (e.data?.kind === 'flow' && e.data.flow.id === selectedFlowId
-      ? { ...e, selected: true, className: `${e.className} nsc-edge-selected` }
-      : e));
-  }, [graphEdges, placedKeys, showRunsOn, selectedFlowId]);
+    const failed = impact ? new Set([impact.root, ...impact.direct]) : null;
+    return list.map((e) => {
+      let edge = e;
+      if (e.data?.kind === 'flow' && e.data.flow.id === selectedFlowId) {
+        edge = { ...edge, selected: true, className: `${edge.className} nsc-edge-selected` };
+      }
+      if (impact && failed) {
+        const hit = e.data?.kind === 'flow'
+          ? impact.flows.has(e.data.flow.id)
+          : failed.has(e.source) && failed.has(e.target);
+        edge = { ...edge, className: `${edge.className ?? ''} ${hit ? 'nsc-edge-impact' : 'nsc-edge-dim'}` };
+      }
+      return edge;
+    });
+  }, [graphEdges, placedKeys, showRunsOn, selectedFlowId, impact]);
+
+  /** Nodes as rendered: impact highlight and per-type draggability are derived, not stored. */
+  const displayNodes = useMemo(() => {
+    if (!impact && layoutEditable === notesEditable) return nodes;
+    return nodes.map((n) => {
+      let next = n;
+      if (isNoteNode(n)) {
+        if (!notesEditable) next = { ...n, draggable: false };
+      } else if (!layoutEditable) {
+        next = { ...n, draggable: false };
+      }
+      if (impact && isObjectNode(next)) {
+        next = { ...next, data: { ...next.data, impact: impactRole(impact, next.data.key) } };
+      }
+      return next;
+    });
+  }, [nodes, impact, layoutEditable, notesEditable]);
 
   const viewportCenter = useCallback(() => {
     const rect = wrapperRef.current?.getBoundingClientRect();
@@ -353,6 +406,43 @@ function Editor({ config }: { config: EditorConfig }) {
       return result.filter((n) => n.id !== nodeId);
     });
   }, [setNodes]);
+
+  const updateNote = useCallback((nodeId: string, update: NoteUpdate) => {
+    setNodes((ns) => ns.map((n) => {
+      if (n.id !== nodeId || !isNoteNode(n)) return n;
+      const next: NoteNodeType = { ...n, data: { ...n.data } };
+      if (update.text !== undefined) next.data.text = update.text;
+      if (update.color !== undefined) next.data.color = update.color;
+      if (update.width !== undefined || update.height !== undefined) {
+        const width = update.width ?? nodeSize(n).width;
+        const height = update.height ?? nodeSize(n).height;
+        next.width = width;
+        next.height = height;
+        next.style = { ...n.style, width, height };
+      }
+      return next;
+    }));
+  }, [setNodes]);
+
+  const deleteNote = useCallback((nodeId: string) => {
+    setNodes((ns) => ns.filter((n) => n.id !== nodeId));
+  }, [setNodes]);
+
+  const addNote = useCallback(() => {
+    const c = viewportCenter();
+    const clientKey = newNoteKey();
+    const note: NoteNodeType = {
+      id: noteNodeId(clientKey),
+      type: 'note',
+      position: { x: snap(c.x - NOTE_WIDTH / 2, grid), y: snap(c.y - NOTE_HEIGHT / 2, grid) },
+      width: NOTE_WIDTH,
+      height: NOTE_HEIGHT,
+      style: { width: NOTE_WIDTH, height: NOTE_HEIGHT },
+      selected: true,
+      data: { kind: 'note', clientKey, dbId: null, text: '', color: 'ffe082' },
+    };
+    setNodes((ns) => sortParentsFirst([...ns.map((n) => ({ ...n, selected: false })), note]));
+  }, [grid, setNodes, viewportCenter]);
 
   const addGroup = useCallback(() => {
     const selected = nodesRef.current.filter((n) => n.selected && isObjectNode(n));
@@ -420,14 +510,16 @@ function Editor({ config }: { config: EditorConfig }) {
   }, [setNodes]);
 
   const onBeforeDelete: OnBeforeDelete<CanvasNode, CanvasEdge> = useCallback(async ({ nodes: toDelete }) => {
-    if (!layoutEditable) return false;
+    if (!layoutEditable && !notesEditable) return false;
     // Groups: keep their members (React Flow would delete children together with the parent)
-    const groups = toDelete.filter(isGroupNode);
-    for (const g of groups) deleteGroup(g.id);
-    const objects = toDelete.filter((n) => isObjectNode(n));
+    if (layoutEditable && perms.edit_groups) {
+      for (const g of toDelete.filter(isGroupNode)) deleteGroup(g.id);
+    }
+    const objects = layoutEditable ? toDelete.filter((n) => isObjectNode(n)) : [];
+    const notes = notesEditable ? toDelete.filter((n) => isNoteNode(n)) : [];
     // Connections are never deleted with the keyboard; use the edge panel for that
-    return { nodes: objects, edges: [] };
-  }, [deleteGroup, layoutEditable]);
+    return { nodes: [...objects, ...notes], edges: [] };
+  }, [deleteGroup, layoutEditable, notesEditable, perms.edit_groups]);
 
   // -------------------------------------------------------------------------------------------------------------------
   // Drag & drop from the sidebar
@@ -538,13 +630,53 @@ function Editor({ config }: { config: EditorConfig }) {
     }
   }, [colorMode, config.canvas.name, notify]);
 
+  const openNewService = useCallback((hostKey: string | null) => {
+    const node = hostKey ? nodesRef.current.find((n) => n.id === hostKey) : undefined;
+    const parsed = hostKey ? parseKey(hostKey) : null;
+    const name = node && isObjectNode(node) ? node.data.desc?.name : undefined;
+    setNewService({ parent: parsed ? { ...parsed, name } : null });
+  }, []);
+
   const onNewService = useCallback(() => {
     const selectedHosts = nodesRef.current.filter(
-      (n): n is ObjectNodeType => n.selected === true && isObjectNode(n) && !!n.data.desc && n.data.desc.type !== 'service',
+      (n): n is ObjectNodeType => n.selected === true && isObjectNode(n) && !!n.data.desc
+        && (n.data.desc.type === 'device' || n.data.desc.type === 'virtualmachine'),
     );
-    const parsed = selectedHosts.length === 1 ? parseKey(selectedHosts[0].data.key) : null;
-    setNewService({ parent: parsed });
+    openNewService(selectedHosts.length === 1 ? selectedHosts[0].data.key : null);
+  }, [openNewService]);
+
+  const onNewApplication = useCallback(() => {
+    const services = nodesRef.current
+      .filter((n): n is ObjectNodeType => n.selected === true && isObjectNode(n) && n.data.desc?.type === 'service')
+      .map((n) => ({ id: n.data.desc!.id, display: n.data.desc!.name }));
+    setNewApplication({ services });
   }, []);
+
+  const onApplicationCreated = useCallback((appKey: string, serviceKeys: string[]) => {
+    setNewApplication(null);
+    notify('Application angelegt.', 'success');
+    const byId = new Map(nodesRef.current.map((n) => [n.id, n]));
+    const placed = serviceKeys.map((k) => byId.get(k)).filter((n): n is CanvasNode => !!n);
+    if (!layoutEditable) {
+      void refreshGraph();
+      return;
+    }
+    if (placed.length) {
+      const positions = placed.map((n) => absolutePosition(n, byId));
+      const x = Math.max(...positions.map((p) => p.x)) + NODE_WIDTH + 80;
+      let y = positions.reduce((sum, p) => sum + p.y, 0) / positions.length;
+      // Do not land on top of an existing node
+      const occupied = nodesRef.current
+        .filter((n) => !isGroupNode(n))
+        .map((n) => ({ ...absolutePosition(n, byId), ...nodeSize(n) }));
+      while (occupied.some((r) => x < r.x + r.width && x + NODE_WIDTH > r.x && y < r.y + r.height && y + NODE_HEIGHT > r.y)) {
+        y += NODE_HEIGHT + 30;
+      }
+      addNodes({ [appKey]: { x, y } });
+    } else {
+      addAtCenter(appKey);
+    }
+  }, [addAtCenter, addNodes, layoutEditable, notify, refreshGraph]);
 
   const onServiceCreated = useCallback((serviceKey: string, parentKey: string) => {
     setNewService(null);
@@ -562,9 +694,106 @@ function Editor({ config }: { config: EditorConfig }) {
     }
   }, [addAtCenter, addNodes, notify]);
 
+  const exportPdf = useCallback(async () => {
+    const element = wrapperRef.current?.querySelector<HTMLElement>('.react-flow__viewport');
+    const editor = wrapperRef.current?.closest<HTMLElement>('.nsc-editor');
+    if (!element || !nodesRef.current.length) return;
+    setBusy(true);
+    // Always print in the light theme
+    editor?.classList.add('nsc-print-light');
+    try {
+      await new Promise((resolve) => window.requestAnimationFrame(() => resolve(null)));
+      const { jsPDF } = await import('jspdf');
+      const bounds = getNodesBounds(nodesRef.current);
+      const padding = 30;
+      const imgW = Math.min(6000, Math.ceil(bounds.width + padding * 2));
+      const imgH = Math.min(6000, Math.ceil(bounds.height + padding * 2));
+      const vp = getViewportForBounds(bounds, imgW, imgH, 0.1, 2, padding);
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#ffffff',
+        width: imgW,
+        height: imgH,
+        pixelRatio: 2,
+        style: { width: `${imgW}px`, height: `${imgH}px`, transform: `translate(${vp.x}px, ${vp.y}px) scale(${vp.zoom})` },
+        filter: (node: HTMLElement) => !node.classList?.contains('react-flow__resize-control'),
+      });
+
+      const landscape = imgW >= imgH;
+      const pdf = new jsPDF({ orientation: landscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 12;
+      const headerH = 16;
+      const legendH = 10;
+      const availW = pageW - margin * 2;
+      const availH = pageH - margin * 2 - headerH - legendH;
+      const scale = Math.min(availW / imgW, availH / imgH);
+      const w = imgW * scale;
+      const h = imgH * scale;
+
+      // Header
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(15);
+      pdf.setTextColor(29, 39, 59);
+      pdf.text(config.canvas.name, margin, margin + 6);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      pdf.setTextColor(102, 115, 130);
+      pdf.text(`Stand: ${new Date().toLocaleString('de-DE')}`, margin, margin + 11.5);
+      pdf.text('NetBox Service Canvas', pageW - margin, margin + 6, { align: 'right' });
+      pdf.setDrawColor(220, 225, 231);
+      pdf.line(margin, margin + headerH - 2, pageW - margin, margin + headerH - 2);
+
+      // Diagram, centred in the available area
+      pdf.addImage(dataUrl, 'PNG', margin + (availW - w) / 2, margin + headerH + (availH - h) / 2, w, h);
+
+      // Legend
+      const ly = pageH - margin - 3;
+      let lx = margin;
+      const legend: Array<{ label: string; color: [number, number, number]; dash?: number[] }> = [
+        { label: 'aktiv', color: [47, 179, 68] },
+        { label: 'geplant', color: [23, 162, 184], dash: [1.5, 1] },
+        { label: 'deaktiviert', color: [154, 160, 172], dash: [0.5, 1] },
+        { label: 'läuft auf', color: [102, 115, 130], dash: [1, 1] },
+        { label: 'gehört zu (Application)', color: [156, 39, 176], dash: [0.3, 1.2] },
+      ];
+      pdf.setFontSize(8);
+      for (const item of legend) {
+        pdf.setDrawColor(...item.color);
+        pdf.setLineWidth(0.6);
+        pdf.setLineDashPattern(item.dash ?? [], 0);
+        pdf.line(lx, ly - 1, lx + 7, ly - 1);
+        pdf.setLineDashPattern([], 0);
+        pdf.setTextColor(102, 115, 130);
+        pdf.text(item.label, lx + 9, ly);
+        lx += 9 + pdf.getTextWidth(item.label) + 7;
+      }
+      pdf.save(`${slugify(config.canvas.name)}.pdf`);
+    } catch (e) {
+      notify(`PDF-Export fehlgeschlagen: ${(e as Error).message}`, 'danger');
+    } finally {
+      editor?.classList.remove('nsc-print-light');
+      setBusy(false);
+    }
+  }, [config.canvas.name, notify]);
+
+  const removeFromCanvas = useCallback((key: string) => {
+    setNodes((ns) => ns.filter((n) => n.id !== key));
+    setSelectedNodeKey(null);
+    if (impactRoot === key) setImpactRoot(null);
+  }, [impactRoot, setNodes]);
+
+  const selectedNodeDesc = useMemo(() => {
+    if (!selectedNodeKey || selectedFlowId !== null) return null;
+    const node = nodes.find((n) => n.id === selectedNodeKey);
+    return node && isObjectNode(node) ? node.data.desc : null;
+  }, [nodes, selectedNodeKey, selectedFlowId]);
+
+  const impactName = impactRoot ? (descriptorFor(impactRoot)?.name ?? impactRoot) : null;
+
   const contextValue: EditorContextValue = useMemo(() => ({
-    api, perms, readOnly, grid, updateGroup, deleteGroup, notify,
-  }), [api, perms, readOnly, grid, updateGroup, deleteGroup, notify]);
+    api, perms, readOnly, grid, updateGroup, deleteGroup, updateNote, deleteNote, notify,
+  }), [api, perms, readOnly, grid, updateGroup, deleteGroup, updateNote, deleteNote, notify]);
 
   if (loadError) {
     return (
@@ -603,9 +832,14 @@ function Editor({ config }: { config: EditorConfig }) {
           onAddMissing={() => void addMissing()}
           onFitView={() => fitView({ duration: 300, maxZoom: 1.2 })}
           onExport={(f) => void exportImage(f)}
+          onExportPdf={() => void exportPdf()}
+          impactName={impactName}
+          onClearImpact={() => setImpactRoot(null)}
           onReload={() => {
             if (saveState !== 'saved' && !window.confirm('Ungespeicherte Layout-Änderungen verwerfen?')) return;
             setSelectedFlowId(null);
+            setSelectedNodeKey(null);
+            setImpactRoot(null);
             void initialLoad();
           }}
           busy={busy || loading}
@@ -616,6 +850,8 @@ function Editor({ config }: { config: EditorConfig }) {
               placed={placedKeys}
               onAdd={addAtCenter}
               onNewService={onNewService}
+              onNewApplication={onNewApplication}
+              onAddNote={addNote}
               canEdit={layoutEditable}
             />
           )}
@@ -624,12 +860,12 @@ function Editor({ config }: { config: EditorConfig }) {
             {!loading && nodes.length === 0 && (
               <div className="nsc-overlay nsc-empty text-muted">
                 {layoutEditable
-                  ? 'Der Canvas ist leer. Ziehe Devices, VMs oder Services aus der Seitenleiste hierher.'
-                  : 'Der Canvas ist leer.'}
+                  ? 'Die Canvas ist leer. Ziehe Devices, VMs, Services oder Applications aus der Seitenleiste hierher.'
+                  : 'Die Canvas ist leer.'}
               </div>
             )}
             <ReactFlow<CanvasNode, CanvasEdge>
-              nodes={nodes}
+              nodes={displayNodes}
               edges={edges}
               nodeTypes={nodeTypes}
               onNodesChange={onNodesChange}
@@ -639,13 +875,25 @@ function Editor({ config }: { config: EditorConfig }) {
               isValidConnection={isValidConnection}
               connectionMode={ConnectionMode.Loose}
               onEdgeClick={(_, edge) => {
-                if (edge.data?.kind === 'flow') setSelectedFlowId(edge.data.flow.id);
+                if (edge.data?.kind === 'flow') {
+                  setSelectedFlowId(edge.data.flow.id);
+                  setSelectedNodeKey(null);
+                }
               }}
-              onPaneClick={() => setSelectedFlowId(null)}
-              nodesDraggable={layoutEditable}
+              onNodeClick={(_, node) => {
+                if (isObjectNode(node)) {
+                  setSelectedNodeKey(node.id);
+                  setSelectedFlowId(null);
+                }
+              }}
+              onPaneClick={() => {
+                setSelectedFlowId(null);
+                setSelectedNodeKey(null);
+              }}
+              nodesDraggable={layoutEditable || notesEditable}
               nodesConnectable={!readOnly && (perms.add_connection || perms.change_service)}
               elementsSelectable
-              deleteKeyCode={layoutEditable ? ['Delete', 'Backspace'] : null}
+              deleteKeyCode={layoutEditable || notesEditable ? ['Delete', 'Backspace'] : null}
               multiSelectionKeyCode={['Meta', 'Control', 'Shift']}
               snapToGrid={snapToGrid}
               snapGrid={[grid, grid]}
@@ -669,12 +917,39 @@ function Editor({ config }: { config: EditorConfig }) {
               onChanged={() => void refreshGraph()}
             />
           )}
+          {!selectedFlow && selectedNodeDesc && (
+            <NodePanel
+              key={selectedNodeDesc.key}
+              desc={selectedNodeDesc}
+              flows={graphEdges.flows}
+              describe={descriptorFor}
+              layoutEditable={layoutEditable}
+              impactActive={impactRoot === selectedNodeDesc.key}
+              onClose={() => setSelectedNodeKey(null)}
+              onChanged={() => void refreshGraph()}
+              onRemove={() => removeFromCanvas(selectedNodeDesc.key)}
+              onSelectFlow={(id) => {
+                setSelectedFlowId(id);
+                setSelectedNodeKey(null);
+              }}
+              onToggleImpact={() => setImpactRoot((r) => (r === selectedNodeDesc.key ? null : selectedNodeDesc.key))}
+              onNewService={() => openNewService(selectedNodeDesc.key)}
+            />
+          )}
         </div>
         <div className="nsc-legend small text-muted">
           <span><span className="nsc-legend-line active" /> aktiv</span>
           <span><span className="nsc-legend-line planned" /> geplant</span>
           <span><span className="nsc-legend-line disabled" /> deaktiviert</span>
           <span><span className="nsc-legend-line runs-on" /> läuft auf</span>
+          <span><span className="nsc-legend-line part-of" /> gehört zu</span>
+          {impact && (
+            <>
+              <span><span className="nsc-legend-dot" style={{ background: '#d63939' }} /> fällt mit aus</span>
+              <span><span className="nsc-legend-dot" style={{ background: '#f76707' }} /> abhängig betroffen</span>
+            </>
+          )}
+          <span className="ms-auto">Tipp: Knoten oder Verbindung anklicken zum Bearbeiten</span>
         </div>
         {pendingConnect && (
           <ConnectDialog
@@ -694,6 +969,13 @@ function Editor({ config }: { config: EditorConfig }) {
             initialParent={newService.parent}
             onClose={() => setNewService(null)}
             onCreated={onServiceCreated}
+          />
+        )}
+        {newApplication && (
+          <NewApplicationModal
+            initialServices={newApplication.services}
+            onClose={() => setNewApplication(null)}
+            onCreated={onApplicationCreated}
           />
         )}
         <div className="nsc-toasts">

@@ -131,7 +131,7 @@ Am Ende sollte `OK` stehen. Falls nicht, schick mir die Zeilen ab `FAIL:` bzw. `
 
 ### b) Durchklicken (Checkliste)
 
-1. **Menü „Service Canvas“** ist vorhanden und enthält Canvases, Service Connections und Connection Hops.
+1. **Menü „Service Canvas“** ist vorhanden und enthält Canvases, Applications, Service Connections und Connection Hops.
 2. **Service Connections:**
    - Liste mit Filtern (Protokoll, Status, Device, VM)
    - Eine Connection öffnen: Source, Target und die Hop-Tabelle unten stimmen
@@ -159,11 +159,22 @@ Am Ende sollte `OK` stehen. Falls nicht, schick mir die Zeilen ab `FAIL:` bzw. `
    - **Gruppe**: zwei Knoten markieren (Shift+Klick), dann *Gruppe*. Doppelklick auf den Namen benennt sie um, die
      Farbe wählst du über die Leiste über der markierten Gruppe, die Größe über die Ecken. Knoten hinein- und
      herausziehen
-   - **PNG** / **SVG** exportieren
+   - **PNG** / **SVG** / **PDF (A4)** exportieren. Das PDF ist auch im Dark Mode hell und hat Kopfzeile und Legende
    - NetBox auf Dark Mode umschalten: Der Canvas zieht mit
-6. **Lösch-Kaskade:** Service `grafana` löschen. Danach sind seine Connections und sein Canvas-Node verschwunden, und
+   - **Knoten anklicken** (z. B. `rick`): Rechts öffnet sich das Knoten-Panel mit Details, Verbindungen,
+     „Alle Felder bearbeiten“ (führt nach dem Speichern zurück in den Editor) und „Von dieser Canvas entfernen“
+   - Einen Service anklicken, Tab **Bearbeiten**: Name/Ports ändern und speichern, der Knoten aktualisiert sich
+   - **Neue Application** (unten in der Seitenleiste), z. B. „Grafana“ mit dem Service `grafana`: Der App-Knoten
+     erscheint neben dem Service, verbunden mit einer lila gepunkteten Linie
+   - **Impact-Analyse** im Knoten-Panel von `rick`: Services darauf und ihre Applications werden rot, abhängige
+     Services orange, der Rest grau. Oben erscheint „Impact: Ausfall von rick“ mit ×
+   - **Notiz** anlegen, Doppelklick, Text schreiben, Farbe ändern, Größe ziehen, F5: alles bleibt erhalten
+6. **Application-Seite** (Applications → Grafana): Tabs **Services** und **Connections**, Changelog und Journal
+   funktionieren. Auf der Service-Seite von `grafana` zeigt rechts ein Panel „Applications“.
+7. **Changelog/Journal** eines Canvas, einer Service Connection und eines Hops öffnen: kein Fehler mehr.
+8. **Lösch-Kaskade:** Service `grafana` löschen. Danach sind seine Connections und sein Canvas-Node verschwunden, und
    im Changelog stehen die Löschungen.
-7. **Rechte:** Einen Benutzer nur mit `view`-Rechten anlegen. Die Canvas ist für ihn nur lesbar, ohne Drag und ohne
+9. **Rechte:** Einen Benutzer nur mit `view`-Rechten anlegen. Die Canvas ist für ihn nur lesbar, ohne Drag und ohne
    Bearbeiten-Buttons.
 
 Wenn im Editor etwas nicht klappt: Browser-Konsole öffnen (F12 → Konsole) und mir die roten Zeilen schicken.
@@ -188,5 +199,6 @@ Wenn im Editor etwas nicht klappt: Browser-Konsole öffnen (F12 → Konsole) und
 | `set PLUGIN_SRC in .env` | Die Datei `~/netbox-dev/.env` fehlt, siehe Schritt 3 |
 | Container startet neu, im Log steht `Waiting on DB` | Der erste Start dauert; `docker compose logs postgres` prüfen |
 | `ImproperlyConfigured: Unable to import plugin` | Das Image wurde ohne Plugin gebaut: `docker compose build netbox` |
+| `Plugin netbox_service_canvas does not provide a 'config' variable`, danach „Waiting on DB“ | Der Container darf den Code-Ordner nicht lesen (Rechte nach `scp` von Windows): `chmod -R a+rX ~/netbox-service-canvas`, dann `docker compose up -d` |
 | Seite ohne CSS/JS im Editor | `DEBUG` ist nicht `true`; in der Override-Datei nachsehen |
 | Browser erreicht Port 8000 nicht | Firewall auf der VM: `sudo ufw allow 8000/tcp` |

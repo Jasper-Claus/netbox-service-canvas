@@ -124,9 +124,11 @@ docker compose exec netbox ls /opt/netbox/netbox/static/netbox_service_canvas/di
 
 1. **Plugins → Service Canvas** erscheint im Menü (getrennt von „Topology Views“).
 2. Unter **Admin → Permissions** die Rechte für Benutzer/Gruppen vergeben. Die Objekttypen heißen
-   *Service Canvas | canvas*, *service connection*, *connection hop*, *canvas node* und *canvas group*.
+   *Service Canvas | canvas*, *service connection*, *connection hop*, *canvas node*, *canvas group*,
+   *canvas note* und *application*.
    Zum Bearbeiten im Editor braucht man `change` auf *canvas* sowie `add`/`change`/`delete` auf *canvas node*
-   (und *canvas group* für Gruppen).
+   (und *canvas group* für Gruppen, *canvas note* für Notizen). Applications anlegen/bearbeiten: `add`/`change` auf
+   *application*.
 3. Einen Canvas anlegen, den Tab **Editor** öffnen, ein Device aus der Seitenleiste hineinziehen und die Seite neu
    laden. Die Position muss erhalten bleiben.
 4. Auf einer Device-Seite erscheint der Tab **Connections**, sobald Verbindungen existieren.

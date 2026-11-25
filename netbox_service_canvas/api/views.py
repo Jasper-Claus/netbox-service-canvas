@@ -13,7 +13,7 @@ from netbox.api.viewsets import NetBoxModelViewSet
 from netbox.plugins import get_plugin_config
 
 from .. import filtersets, graph
-from ..models import Canvas, CanvasGroup, CanvasNode, ConnectionHop, ServiceConnection
+from ..models import Application, Canvas, CanvasGroup, CanvasNode, CanvasNote, ConnectionHop, ServiceConnection
 from . import serializers
 
 LAYOUT_CHANGELOG_MESSAGE = 'Canvas layout saved'
@@ -22,6 +22,12 @@ LAYOUT_CHANGELOG_MESSAGE = 'Canvas layout saved'
 class ServiceCanvasRootView(APIRootView):
     def get_view_name(self):
         return 'Service Canvas'
+
+
+class ApplicationViewSet(NetBoxModelViewSet):
+    queryset = Application.objects.prefetch_related('services', 'tags')
+    serializer_class = serializers.ApplicationSerializer
+    filterset_class = filtersets.ApplicationFilterSet
 
 
 class ServiceConnectionViewSet(NetBoxModelViewSet):
@@ -87,6 +93,12 @@ class CanvasNodeViewSet(NetBoxModelViewSet):
     filterset_class = filtersets.CanvasNodeFilterSet
 
 
+class CanvasNoteViewSet(NetBoxModelViewSet):
+    queryset = CanvasNote.objects.select_related('canvas')
+    serializer_class = serializers.CanvasNoteSerializer
+    filterset_class = filtersets.CanvasNoteFilterSet
+
+
 def _snap(value, grid):
     if value is None or not grid:
         return value
@@ -112,6 +124,13 @@ def _layout_data(canvas):
             }
             for n in canvas.nodes.select_related('object_type')
         ],
+        'notes': [
+            {
+                'id': n.pk, 'text': n.text, 'color': n.color,
+                'x': n.x, 'y': n.y, 'width': n.width, 'height': n.height,
+            }
+            for n in canvas.notes.all()
+        ],
     }
 
 
@@ -127,8 +146,9 @@ class LayoutWriter:
         self.grid = grid
         self.groups = {g.pk: g for g in canvas.groups.all()}
         self.nodes = {n.pk: n for n in canvas.nodes.all()}
+        self.notes = {n.pk: n for n in canvas.notes.all()}
         self.group_keys = {}
-        self.result = {'created_groups': {}, 'created_nodes': {}, 'updated': 0, 'deleted': 0}
+        self.result = {'created_groups': {}, 'created_nodes': {}, 'created_notes': {}, 'updated': 0, 'deleted': 0}
 
     def _require(self, model, perm):
         codename = f'netbox_service_canvas.{perm}_{model._meta.model_name}'
@@ -235,6 +255,30 @@ class LayoutWriter:
                 self.result['created_nodes'][key] = node.pk
 
 
+    def write_notes(self, notes):
+        for data in notes:
+            values = {
+                'x': _snap(data['x'], self.grid), 'y': _snap(data['y'], self.grid),
+                'width': _snap(data['width'], self.grid), 'height': _snap(data['height'], self.grid),
+            }
+            for field in ('text', 'color'):
+                if field in data:
+                    values[field] = data[field]
+            if data.get('id'):
+                note = self.notes.get(data['id'])
+                if note is None:
+                    raise ValidationError({'notes': _('Note {id} does not belong to this canvas.').format(
+                        id=data['id'])})
+                self._apply(note, values, 'change')
+            else:
+                self._require(CanvasNote, 'add')
+                note = CanvasNote(canvas=self.canvas, **values)
+                self._save(note, 'add')
+                self.notes[note.pk] = note
+                if data.get('key'):
+                    self.result['created_notes'][data['key']] = note.pk
+
+
 class CanvasViewSet(NetBoxModelViewSet):
     queryset = Canvas.objects.select_related('site', 'cluster').prefetch_related('tags').annotate(
         node_count=Count('nodes')
@@ -247,7 +291,7 @@ class CanvasViewSet(NetBoxModelViewSet):
     @action(detail=True, methods=['get', 'put'], url_path='layout')
     def layout(self, request, pk=None):
         """
-        GET: the stored layout (groups and nodes) of a canvas.
+        GET: the stored layout (groups, nodes and notes) of a canvas.
         PUT: save the layout of a canvas in a single transaction. Requires `change` permission on the canvas plus the
         respective add/change/delete permissions on canvas nodes and groups. Only rows that actually changed are
         written, so autosave does not flood the changelog.
@@ -264,8 +308,10 @@ class CanvasViewSet(NetBoxModelViewSet):
         with transaction.atomic():
             writer.delete(CanvasNode, data['deleted_nodes'], writer.nodes)
             writer.delete(CanvasGroup, data['deleted_groups'], writer.groups)
+            writer.delete(CanvasNote, data['deleted_notes'], writer.notes)
             writer.write_groups(data['groups'])
             writer.write_nodes(data['nodes'])
+            writer.write_notes(data['notes'])
 
         canvas.refresh_from_db()
         return Response({**_layout_data(canvas), **writer.result})

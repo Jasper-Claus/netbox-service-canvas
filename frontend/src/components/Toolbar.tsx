@@ -23,6 +23,9 @@ interface Props {
   onAddMissing: () => void;
   onFitView: () => void;
   onExport: (format: 'png' | 'svg') => void;
+  onExportPdf: () => void;
+  impactName: string | null;
+  onClearImpact: () => void;
   onReload: () => void;
   busy: boolean;
 }
@@ -105,7 +108,17 @@ export function Toolbar(p: Props) {
         <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => p.onExport('svg')} disabled={p.busy} title="Als SVG exportieren">
           SVG
         </button>
+        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={p.onExportPdf} disabled={p.busy} title="Als DIN-A4-PDF zum Drucken exportieren">
+          <i className="mdi mdi-file-pdf-box" /> PDF (A4)
+        </button>
       </div>
+
+      {p.impactName && (
+        <span className="nsc-impact-chip">
+          <i className="mdi mdi-lightning-bolt" /> Impact: Ausfall von <strong>{p.impactName}</strong>
+          <button type="button" className="btn-close btn-close-sm" aria-label="Impact-Analyse beenden" onClick={p.onClearImpact} />
+        </span>
+      )}
 
       <div className="ms-auto d-flex align-items-center gap-2">
         {p.canEditLayout && !p.readOnly && (

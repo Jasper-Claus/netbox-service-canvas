@@ -4,7 +4,9 @@ from rest_framework import serializers
 
 from dcim.api.serializers import SiteSerializer
 from extras.api.serializers import TagSerializer
-from netbox.api.fields import ChoiceField, ContentTypeField
+from ipam.api.serializers import ServiceSerializer
+from ipam.models import Service
+from netbox.api.fields import ChoiceField, ContentTypeField, SerializedPKRelatedField
 from netbox.api.gfk_fields import GFKSerializerField
 from netbox.api.serializers import (
     ChangeLogMessageSerializer,
@@ -14,19 +16,45 @@ from netbox.api.serializers import (
 )
 from virtualization.api.serializers import ClusterSerializer
 
-from ..choices import ConnectionDirectionChoices, ConnectionProtocolChoices, ConnectionStatusChoices
+from ..choices import (
+    ApplicationStatusChoices,
+    ConnectionDirectionChoices,
+    ConnectionProtocolChoices,
+    ConnectionStatusChoices,
+)
 from ..constants import CANVAS_NODE_MODELS, CONNECTION_ENDPOINT_MODELS, HOP_OBJECT_MODELS
-from ..models import Canvas, CanvasGroup, CanvasNode, ConnectionHop, ServiceConnection
+from ..models import Application, Canvas, CanvasGroup, CanvasNode, CanvasNote, ConnectionHop, ServiceConnection
 
 __all__ = (
+    'ApplicationSerializer',
     'CanvasGroupSerializer',
     'CanvasLayoutSerializer',
     'CanvasNodeSerializer',
+    'CanvasNoteSerializer',
     'CanvasSerializer',
     'ConnectionHopSerializer',
     'HopOrderSerializer',
     'ServiceConnectionSerializer',
 )
+
+
+class ApplicationSerializer(PrimaryModelSerializer):
+    status = ChoiceField(choices=ApplicationStatusChoices, required=False)
+    services = SerializedPKRelatedField(
+        queryset=Service.objects.all(),
+        serializer=ServiceSerializer,
+        nested=True,
+        required=False,
+        many=True,
+    )
+
+    class Meta:
+        model = Application
+        fields = (
+            'id', 'url', 'display_url', 'display', 'name', 'status', 'version', 'web_url', 'services', 'description',
+            'owner', 'comments', 'tags', 'custom_fields', 'created', 'last_updated',
+        )
+        brief_fields = ('id', 'url', 'display', 'name', 'status', 'version', 'description')
 
 
 class ServiceConnectionSerializer(PrimaryModelSerializer):
@@ -124,6 +152,17 @@ class CanvasNodeSerializer(ChangeLogMessageSerializer, ValidatedModelSerializer)
         brief_fields = ('id', 'url', 'display', 'object_type', 'object_id')
 
 
+class CanvasNoteSerializer(ChangeLogMessageSerializer, ValidatedModelSerializer):
+    canvas = CanvasSerializer(nested=True)
+
+    class Meta:
+        model = CanvasNote
+        fields = (
+            'id', 'url', 'display', 'canvas', 'text', 'color', 'x', 'y', 'width', 'height', 'created', 'last_updated',
+        )
+        brief_fields = ('id', 'url', 'display', 'color')
+
+
 #
 # Bulk layout
 #
@@ -161,6 +200,18 @@ class LayoutNodeSerializer(serializers.Serializer):
         return data
 
 
+class LayoutNoteSerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=False, allow_null=True)
+    # Client-side key for new notes; the response maps it to the new database ID
+    key = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    text = serializers.CharField(required=False, allow_blank=True, max_length=10000)
+    color = serializers.RegexField(r'^[0-9a-f]{6}$', required=False)
+    x = serializers.FloatField()
+    y = serializers.FloatField()
+    width = serializers.FloatField(min_value=0)
+    height = serializers.FloatField(min_value=0)
+
+
 class CanvasLayoutSerializer(serializers.Serializer):
     """
     Payload of PUT /api/plugins/service-canvas/canvases/<id>/layout/
@@ -169,6 +220,8 @@ class CanvasLayoutSerializer(serializers.Serializer):
     groups = LayoutGroupSerializer(many=True, required=False, default=list)
     deleted_nodes = serializers.ListField(child=serializers.IntegerField(), required=False, default=list)
     deleted_groups = serializers.ListField(child=serializers.IntegerField(), required=False, default=list)
+    notes = LayoutNoteSerializer(many=True, required=False, default=list)
+    deleted_notes = serializers.ListField(child=serializers.IntegerField(), required=False, default=list)
 
 
 class HopOrderSerializer(serializers.Serializer):

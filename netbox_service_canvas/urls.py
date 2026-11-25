@@ -7,6 +7,9 @@ from . import views  # noqa: F401  (registers the model views)
 app_name = 'netbox_service_canvas'
 
 urlpatterns = (
+    path('applications/', include(get_model_urls('netbox_service_canvas', 'application', detail=False))),
+    path('applications/<int:pk>/', include(get_model_urls('netbox_service_canvas', 'application'))),
+
     path('canvases/', include(get_model_urls('netbox_service_canvas', 'canvas', detail=False))),
     path('canvases/<int:pk>/', include(get_model_urls('netbox_service_canvas', 'canvas'))),
 

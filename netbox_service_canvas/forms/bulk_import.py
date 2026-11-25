@@ -3,15 +3,27 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Site
+from ipam.models import Service
 from netbox.forms import NetBoxModelImportForm, PrimaryModelImportForm
-from utilities.forms.fields import CSVChoiceField, CSVContentTypeField, CSVModelChoiceField
+from utilities.forms.fields import (
+    CSVChoiceField,
+    CSVContentTypeField,
+    CSVModelChoiceField,
+    CSVModelMultipleChoiceField,
+)
 from virtualization.models import Cluster
 
-from ..choices import ConnectionDirectionChoices, ConnectionProtocolChoices, ConnectionStatusChoices
+from ..choices import (
+    ApplicationStatusChoices,
+    ConnectionDirectionChoices,
+    ConnectionProtocolChoices,
+    ConnectionStatusChoices,
+)
 from ..constants import CONNECTION_ENDPOINT_MODELS, HOP_OBJECT_MODELS
-from ..models import Canvas, ConnectionHop, ServiceConnection
+from ..models import Application, Canvas, ConnectionHop, ServiceConnection
 
 __all__ = (
+    'ApplicationImportForm',
     'CanvasImportForm',
     'ConnectionHopImportForm',
     'ServiceConnectionImportForm',
@@ -102,3 +114,26 @@ class CanvasImportForm(PrimaryModelImportForm):
     class Meta:
         model = Canvas
         fields = ('name', 'site', 'cluster', 'description', 'owner', 'comments', 'tags')
+
+
+class ApplicationImportForm(PrimaryModelImportForm):
+    status = CSVChoiceField(
+        label=_('Status'),
+        choices=ApplicationStatusChoices,
+        required=False,
+        help_text=_('active (default), planned, staging, decommissioning or offline'),
+    )
+    services = CSVModelMultipleChoiceField(
+        label=_('Services (IDs)'),
+        queryset=Service.objects.all(),
+        to_field_name='pk',
+        required=False,
+        help_text=_('Comma-separated service IDs, e.g. "12,13" (in quotes)'),
+    )
+
+    class Meta:
+        model = Application
+        fields = ('name', 'status', 'version', 'web_url', 'services', 'description', 'owner', 'comments', 'tags')
+
+    def clean_status(self):
+        return self.cleaned_data.get('status') or ApplicationStatusChoices.STATUS_ACTIVE

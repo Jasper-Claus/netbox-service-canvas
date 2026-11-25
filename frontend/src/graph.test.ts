@@ -3,10 +3,12 @@ import {
   applySaveResult,
   buildEdges,
   buildNodes,
+  computeImpact,
   diffLayout,
   findGroupAt,
   flowEdge,
   flowLabel,
+  impactRole,
   makeKey,
   parseKey,
   placeNew,
@@ -45,6 +47,7 @@ const graph: GraphResponse = {
   canvas: 1,
   grid_size: 10,
   groups: [{ id: 3, name: 'Rack', color: '2196f3', x: 100, y: 100, width: 400, height: 300 }],
+  notes: [],
   nodes: [
     { id: 11, object_type: 'dcim.device', object_id: 1, x: 0, y: 0, width: null, height: null, group: null },
     { id: 12, object_type: 'ipam.service', object_id: 1, x: 20, y: 60, width: null, height: null, group: 3 },
@@ -59,6 +62,7 @@ const graph: GraphResponse = {
   },
   edges: {
     runs_on: [{ id: 'runs_on:ipam.service:1', source: 'ipam.service:1', target: 'dcim.device:1' }],
+    part_of: [],
     flows: [flow],
   },
 };
@@ -229,5 +233,102 @@ describe('util', () => {
   it('slugifies names', () => {
     expect(slugify('Homelab Übersicht!')).toBe('homelab-bersicht');
     expect(slugify('***')).toBe('canvas');
+  });
+});
+
+describe('applications', () => {
+  const APP = 'netbox_service_canvas.application:4';
+  const edges = {
+    ...graph.edges,
+    part_of: [{ id: `part_of:ipam.service:1:${APP}`, source: 'ipam.service:1', target: APP }],
+  };
+
+  it('shows part-of edges together with runs-on edges', () => {
+    const all = new Set(['dcim.device:1', 'ipam.service:1', 'ipam.service:2', APP]);
+    const built = buildEdges(edges, all);
+    expect(built.map((e) => e.data?.kind).sort()).toEqual(['flow', 'part_of', 'runs_on']);
+    expect(built.find((e) => e.data?.kind === 'part_of')!.className).toBe('nsc-edge-part-of');
+    expect(buildEdges(edges, all, { showRunsOn: false })).toHaveLength(1);
+  });
+
+  it('keys applications by their plugin label', () => {
+    expect(parseKey(APP)).toEqual({ label: 'netbox_service_canvas.application', id: 4 });
+  });
+});
+
+describe('notes', () => {
+  const withNote: GraphResponse = {
+    ...graph,
+    notes: [{ id: 5, text: 'Wartung Fr.', color: 'ffe082', x: 400, y: 400, width: 220, height: 140 }],
+  };
+  const base = buildNodes(withNote, 10);
+  const saved = snapshotFromNodes(base, 10);
+
+  it('builds note nodes', () => {
+    const note = base.find((n) => n.id === 'note:db-5')!;
+    expect(note.type).toBe('note');
+    expect(saved.notes['db-5'].text).toBe('Wartung Fr.');
+    expect(diffLayout(saved, snapshotFromNodes(base, 10))).toBeNull();
+  });
+
+  it('sends changed, new and deleted notes', () => {
+    const edited = base.map((n) => (n.id === 'note:db-5' && n.type === 'note'
+      ? { ...n, data: { ...n.data, text: 'Neu' } }
+      : n)) as CanvasNode[];
+    const payload = diffLayout(saved, snapshotFromNodes(edited, 10))!;
+    expect(payload.notes).toEqual([{ id: 5, text: 'Neu', color: 'ffe082', x: 400, y: 400, width: 220, height: 140 }]);
+
+    const added: CanvasNode = {
+      id: 'note:new-n', type: 'note', position: { x: 0, y: 0 }, width: 200, height: 100,
+      data: { kind: 'note', clientKey: 'new-n', dbId: null, text: '', color: 'c8e6c9' },
+    };
+    const current = [...base.filter((n) => n.id !== 'note:db-5'), added];
+    const snapshot = snapshotFromNodes(current, 10);
+    const p2 = diffLayout(saved, snapshot)!;
+    expect(p2.deleted_notes).toEqual([5]);
+    expect(p2.notes).toEqual([{ key: 'new-n', text: '', color: 'c8e6c9', x: 0, y: 0, width: 200, height: 100 }]);
+
+    const after = applySaveResult(snapshot, {}, {}, { 'new-n': 8 });
+    expect(after.notes['new-n'].dbId).toBe(8);
+  });
+});
+
+describe('impact analysis', () => {
+  const APP = 'netbox_service_canvas.application:4';
+  const edges = {
+    runs_on: [
+      { id: 'r1', source: 'ipam.service:1', target: 'dcim.device:1' },
+      { id: 'r2', source: 'ipam.service:3', target: 'dcim.device:2' },
+    ],
+    part_of: [{ id: 'p1', source: 'ipam.service:1', target: APP }],
+    flows: [
+      // service 2 sends data to service 1 -> depends on it
+      { ...flow, id: 1, source: 'ipam.service:2', target: 'ipam.service:1' },
+      // service 3 depends on service 2 (transitive)
+      { ...flow, id: 2, source: 'ipam.service:3', target: 'ipam.service:2' },
+      // disabled flows are ignored
+      { ...flow, id: 3, source: 'ipam.service:9', target: 'ipam.service:1', status: 'disabled' as const },
+    ],
+  };
+
+  it('propagates host failure to services, applications and dependents', () => {
+    const impact = computeImpact('dcim.device:1', edges);
+    expect([...impact.direct].sort()).toEqual([APP, 'ipam.service:1'].sort());
+    expect([...impact.indirect].sort()).toEqual(['ipam.service:2', 'ipam.service:3']);
+    expect([...impact.flows].sort()).toEqual([1, 2]);
+    expect(impactRole(impact, 'dcim.device:1')).toBe('root');
+    expect(impactRole(impact, 'ipam.service:1')).toBe('direct');
+    expect(impactRole(impact, 'ipam.service:3')).toBe('indirect');
+    expect(impactRole(impact, 'dcim.device:2')).toBe('none');
+    expect(impactRole(impact, 'ipam.service:9')).toBe('none');
+    expect(impactRole(null, 'x')).toBeUndefined();
+  });
+
+  it('treats bidirectional flows as dependencies both ways', () => {
+    const bi = { ...edges, flows: [{ ...flow, id: 5, source: 'ipam.service:1', target: 'ipam.service:2', direction: 'bi' as const }] };
+    const impact = computeImpact('ipam.service:2', bi);
+    expect(impact.indirect.has('ipam.service:1')).toBe(true);
+    // ... and the application of service 1 is NOT structurally failed, it only loses a dependency of its service
+    expect(impact.direct.size).toBe(0);
   });
 });
