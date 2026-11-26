@@ -7,6 +7,7 @@ import type { Flow, ObjectDescriptor } from '../types';
 import { parsePorts } from '../util';
 import { MultiObjectPicker } from './ObjectPicker';
 import { NODE_ICONS, NODE_TYPE_LABELS, statusColorVar } from './ObjectNode';
+import { IconPicker } from './IconPicker';
 import { t } from '../i18n';
 
 interface Props {
@@ -97,7 +98,7 @@ function ServiceEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChanged:
 function ApplicationEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChanged: () => void }) {
   const { api, notify } = useEditor();
   const [form, setForm] = useState<{
-    name: string; status: string; version: string; web_url: string; description: string;
+    name: string; status: string; version: string; icon: string; web_url: string; description: string;
     services: Array<{ id: number; display: string }>;
   } | null>(null);
   const [initial, setInitial] = useState<string>('');
@@ -114,6 +115,7 @@ function ApplicationEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChan
           status: typeof app.status === 'object' && app.status !== null
             ? (app.status as { value: string }).value : String(app.status ?? 'active'),
           version: app.version ?? '',
+          icon: app.icon ?? '',
           web_url: app.web_url ?? '',
           description: app.description ?? '',
           services: app.services.map((s) => ({ id: s.id, display: s.display })),
@@ -140,6 +142,7 @@ function ApplicationEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChan
         name: form.name.trim(),
         status: form.status,
         version: form.version.trim(),
+        icon: form.icon,
         web_url: form.web_url.trim(),
         description: form.description.trim(),
         services: form.services.map((s) => s.id),
@@ -174,6 +177,10 @@ function ApplicationEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChan
           <input id="nsc-node-app-version" className="form-control form-control-sm" value={form.version} maxLength={50}
             onChange={(e) => setForm({ ...form, version: e.target.value })} />
         </div>
+      </div>
+      <div className="mb-2">
+        <span className="form-label small d-block">{t('Icon')}</span>
+        <IconPicker value={form.icon} idPrefix="nsc-node-app-icon" onChange={(icon) => setForm({ ...form, icon })} />
       </div>
       <div className="mb-2">
         <label className="form-label small" htmlFor="nsc-node-app-url">URL</label>
@@ -223,7 +230,7 @@ export function NodePanel({
   return (
     <aside className="nsc-panel" aria-label={t('Details of {name}', { name: desc.name })}>
       <div className="nsc-panel-head nsc-node-panel-head" style={{ ['--nsc-status' as string]: statusColorVar(desc.status?.color) }}>
-        <span className="nsc-panel-icon"><i className={`mdi ${NODE_ICONS[desc.type]}`} /></span>
+        <span className="nsc-panel-icon"><i className={`mdi ${desc.application?.icon || NODE_ICONS[desc.type]}`} /></span>
         <div className="flex-grow-1 min-w-0">
           <div className="small text-muted text-uppercase" title={t(TYPE_HINTS[desc.type])}>{NODE_TYPE_LABELS[desc.type]}</div>
           <h6 className="mb-0 text-truncate" title={desc.name}>{desc.name}</h6>

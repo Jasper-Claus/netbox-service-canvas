@@ -17,6 +17,8 @@ export interface ServiceInfo {
 
 export interface ApplicationInfo {
   version: string;
+  /** Material Design icon class, e.g. "mdi-database"; empty = default icon. */
+  icon?: string;
   web_url: string;
   description: string;
   service_keys: string[];
@@ -70,6 +72,8 @@ export interface LayoutNote {
 }
 
 export type ConnectionStatus = 'active' | 'planned' | 'disabled';
+/** uses: the source needs the target. proxy: the target is reached through the source (reverse proxy, gateway). */
+export type ConnectionKind = 'uses' | 'proxy';
 export type Direction = 'uni' | 'bi';
 
 export interface Flow {
@@ -85,8 +89,25 @@ export interface Flow {
   data_description: string;
   description: string;
   hop_count: number | null;
+  /** Kind for the impact analysis; older backends do not send it ("uses"). */
+  kind?: ConnectionKind;
+  /** Keys of the objects the connection passes through (hops). */
+  hop_keys?: string[];
   url: string;
 }
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/** Per-canvas look of a connection line: bend points (canvas coordinates) and an optional color (rrggbb). */
+export interface EdgeStyle {
+  points: Point[];
+  color?: string;
+}
+
+export type EdgeStyles = Record<string, EdgeStyle>;
 
 export interface RunsOn {
   id: string;
@@ -114,6 +135,7 @@ export interface GraphResponse {
   notes: LayoutNote[];
   objects: Record<string, ObjectDescriptor>;
   edges: GraphEdges;
+  edge_styles?: EdgeStyles;
 }
 
 export interface Perms {
@@ -191,6 +213,8 @@ export interface LayoutPayload {
   deleted_nodes: number[];
   deleted_groups: number[];
   deleted_notes: number[];
+  /** Complete style map; only sent when it changed. */
+  edge_styles?: EdgeStyles;
 }
 
 export interface Hop {

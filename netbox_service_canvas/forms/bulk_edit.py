@@ -9,8 +9,10 @@ from utilities.forms.rendering import FieldSet
 from virtualization.models import Cluster
 
 from ..choices import (
+    ApplicationIconChoices,
     ApplicationStatusChoices,
     ConnectionDirectionChoices,
+    ConnectionKindChoices,
     ConnectionProtocolChoices,
     ConnectionStatusChoices,
 )
@@ -53,9 +55,15 @@ class ServiceConnectionBulkEditForm(PrimaryModelBulkEditForm):
         required=False,
     )
 
+    kind = forms.ChoiceField(
+        label=_('Kind'),
+        choices=add_blank_choice(ConnectionKindChoices),
+        required=False,
+    )
+
     model = ServiceConnection
     fieldsets = (
-        FieldSet('direction', 'protocol', 'port', 'data_description', 'status', 'description'),
+        FieldSet('direction', 'protocol', 'port', 'data_description', 'status', 'kind', 'description'),
     )
     nullable_fields = ('port', 'data_description', 'description', 'comments')
 
@@ -105,8 +113,14 @@ class ApplicationBulkEditForm(PrimaryModelBulkEditForm):
         required=False,
     )
 
+    icon = forms.ChoiceField(
+        label=_('Icon'),
+        choices=add_blank_choice(ApplicationIconChoices),
+        required=False,
+    )
+
     model = Application
     fieldsets = (
-        FieldSet('status', 'version', 'description'),
+        FieldSet('status', 'version', 'icon', 'description'),
     )
-    nullable_fields = ('version', 'description', 'comments')
+    nullable_fields = ('version', 'icon', 'description', 'comments')

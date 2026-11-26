@@ -4,6 +4,7 @@ import { APPLICATION_STATUSES } from '../choices';
 import { useEditor } from '../context';
 import { APPLICATION_LABEL, makeKey } from '../graph';
 import { Modal, Section } from './Modal';
+import { IconPicker } from './IconPicker';
 import { MultiObjectPicker } from './ObjectPicker';
 import { t } from '../i18n';
 
@@ -19,6 +20,7 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
   const [name, setName] = useState('');
   const [status, setStatus] = useState('active');
   const [version, setVersion] = useState('');
+  const [icon, setIcon] = useState('');
   const [webUrl, setWebUrl] = useState('');
   const [description, setDescription] = useState('');
   const [services, setServices] = useState(initialServices);
@@ -37,6 +39,7 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
         name: name.trim(),
         status,
         version: version.trim(),
+        icon,
         web_url: webUrl.trim(),
         description: description.trim(),
         services: services.map((s) => s.id),
@@ -109,6 +112,10 @@ export function NewApplicationModal({ initialServices, onClose, onCreated }: Pro
               onChange={(e) => setWebUrl(e.target.value)}
             />
             {!urlValid && <div className="invalid-feedback">{t('Please start with http:// or https://.')}</div>}
+          </div>
+          <div className="mb-3">
+            <span className="form-label d-block">{t('Icon')}</span>
+            <IconPicker value={icon} onChange={setIcon} idPrefix="nsc-app-icon" />
           </div>
           <div>
             <label className="form-label" htmlFor="nsc-app-description">{t('Description')} <span className="text-muted">({t('optional')})</span></label>

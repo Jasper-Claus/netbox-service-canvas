@@ -131,7 +131,24 @@ def _layout_data(canvas):
             }
             for n in canvas.notes.all()
         ],
+        'edge_styles': canvas.edge_styles or {},
     }
+
+
+def _normalize_edge_styles(styles):
+    """
+    Drop empty entries and round coordinates, so that an unchanged layout compares equal to the stored one.
+    """
+    result = {}
+    for key, style in styles.items():
+        points = [{'x': round(p['x'], 1), 'y': round(p['y'], 1)} for p in style.get('points') or []]
+        color = style.get('color') or ''
+        if points or color:
+            entry = {'points': points}
+            if color:
+                entry['color'] = color
+            result[str(key)] = entry
+    return result
 
 
 class LayoutWriter:
@@ -278,6 +295,17 @@ class LayoutWriter:
                 if data.get('key'):
                     self.result['created_notes'][data['key']] = note.pk
 
+    def write_edge_styles(self, styles):
+        if styles is None:
+            return
+        styles = _normalize_edge_styles(styles)
+        if styles == (self.canvas.edge_styles or {}):
+            return
+        self.canvas.snapshot()
+        self.canvas.edge_styles = styles
+        self._save(self.canvas, 'change')
+        self.result['updated'] += 1
+
 
 class CanvasViewSet(NetBoxModelViewSet):
     queryset = Canvas.objects.select_related('site', 'cluster').prefetch_related('tags').annotate(
@@ -312,6 +340,7 @@ class CanvasViewSet(NetBoxModelViewSet):
             writer.write_groups(data['groups'])
             writer.write_nodes(data['nodes'])
             writer.write_notes(data['notes'])
+            writer.write_edge_styles(data.get('edge_styles'))
 
         canvas.refresh_from_db()
         return Response({**_layout_data(canvas), **writer.result})

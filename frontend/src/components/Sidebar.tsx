@@ -142,7 +142,7 @@ export function Sidebar({ placed, onAdd, onNewService, onNewApplication, onAddNo
               }}
               title={isPlaced ? t('Already on the canvas') : r.display}
             >
-              <span className="nsc-sidebar-item-icon"><i className={`mdi ${icon}`} /></span>
+              <span className="nsc-sidebar-item-icon"><i className={`mdi ${(r as { icon?: string }).icon || icon}`} /></span>
               <div className="nsc-sidebar-item-text">
                 <div className="text-truncate fw-medium">{r.name ?? r.display}</div>
                 {sub && <div className="small text-muted text-truncate">{sub}</div>}

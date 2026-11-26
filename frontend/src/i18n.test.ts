@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { APPLICATION_STATUSES, DIRECTIONS, HOP_TYPES, STATUSES } from './choices';
+import {
+  APPLICATION_ICONS, APPLICATION_STATUSES, DIRECTIONS, HOP_TYPES, KINDS, LINE_COLORS, STATUSES,
+} from './choices';
 import { getLanguage, setLanguage, t } from './i18n';
 import { DE } from './i18n.de';
 
@@ -44,7 +46,7 @@ describe('i18n', () => {
 
   it('has a German text for every choice label rendered with t()', () => {
     const labels = [
-      ...APPLICATION_STATUSES, ...STATUSES, ...DIRECTIONS,
+      ...APPLICATION_STATUSES, ...STATUSES, ...DIRECTIONS, ...KINDS, ...APPLICATION_ICONS, ...LINE_COLORS,
     ].map(([, label]) => label).concat(HOP_TYPES.map((h) => h.title));
     expect(labels.filter((label) => !(label in DE))).toEqual([]);
   });

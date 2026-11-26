@@ -111,6 +111,7 @@ def describe(obj, label=None):
         data['subtitle'] = obj.version
         data['application'] = {
             'version': obj.version,
+            'icon': obj.icon,
             'web_url': obj.web_url,
             'description': obj.description,
             'service_keys': [make_key(SERVICE, pk) for pk in sorted(service_ids)],
@@ -168,9 +169,12 @@ def connection_data(conn):
         'port': conn.port,
         'status': conn.status,
         'status_label': str(conn.get_status_display()),
+        'kind': conn.kind,
         'data_description': conn.data_description,
         'description': conn.description,
         'hop_count': getattr(conn, 'hop_count', None),
+        # Objects the connection passes through; if one of them fails, the connection breaks (impact analysis)
+        'hop_keys': [make_key(ct_label(h.object_type), h.object_id) for h in conn.hops.all()],
         'url': conn.get_absolute_url(),
     }
 
@@ -203,7 +207,9 @@ def build_edges(user, node_keys, descriptors):
     if keys_by_label:
         qs = ServiceConnection.objects.restrict(user, 'view').filter(
             _endpoint_filter(keys_by_label, 'source') & _endpoint_filter(keys_by_label, 'target')
-        ).select_related('source_type', 'target_type').annotate(hop_count=Count('hops'))
+        ).select_related('source_type', 'target_type').prefetch_related('hops__object_type').annotate(
+            hop_count=Count('hops'),
+        )
         flows = [connection_data(conn) for conn in qs]
     return {'runs_on': runs_on, 'part_of': part_of, 'flows': flows}
 

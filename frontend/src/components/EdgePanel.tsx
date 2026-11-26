@@ -17,14 +17,17 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError } from '../api';
-import { DIRECTIONS, HOP_TYPES, PROTOCOLS, STATUSES } from '../choices';
+import { DIRECTIONS, HOP_TYPES, KINDS, LINE_COLORS, PROTOCOLS, STATUSES } from '../choices';
 import { useEditor } from '../context';
-import type { Flow, Hop, ObjectDescriptor } from '../types';
+import type { EdgeStyle, Flow, Hop, ObjectDescriptor } from '../types';
 import { ObjectPicker } from './ObjectPicker';
 import { t } from '../i18n';
 
 interface Props {
   flow: Flow;
+  /** Look of the line on this canvas. */
+  edgeStyle?: EdgeStyle;
+  onEdgeStyle: (update: Partial<EdgeStyle>) => void;
   source: ObjectDescriptor | null;
   target: ObjectDescriptor | null;
   onClose: () => void;
@@ -73,8 +76,8 @@ function SortableHop({ hop, canMove, canDelete, onDelete }: {
   );
 }
 
-export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
-  const { api, perms, readOnly, notify } = useEditor();
+export function EdgePanel({ flow, edgeStyle, onEdgeStyle, source, target, onClose, onChanged }: Props) {
+  const { api, perms, readOnly, notify, edgesEditable } = useEditor();
   const canChange = !readOnly && perms.change_connection;
   const canDelete = !readOnly && perms.delete_connection;
   const canAddHop = !readOnly && perms.add_hop;
@@ -86,6 +89,7 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
     port: flow.port ? String(flow.port) : '',
     direction: flow.direction as string,
     status: flow.status as string,
+    kind: (flow.kind ?? 'uses') as string,
     data_description: flow.data_description,
     description: flow.description,
   });
@@ -103,6 +107,7 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
       port: flow.port ? String(flow.port) : '',
       direction: flow.direction,
       status: flow.status,
+      kind: flow.kind ?? 'uses',
       data_description: flow.data_description,
       description: flow.description,
     });
@@ -128,7 +133,7 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
   const portNumber = form.port ? Number(form.port) : null;
   const portValid = portNumber === null || (Number.isInteger(portNumber) && portNumber >= 1 && portNumber <= 65535);
   const dirty = form.protocol !== flow.protocol || (portNumber ?? null) !== (flow.port ?? null)
-    || form.direction !== flow.direction || form.status !== flow.status
+    || form.direction !== flow.direction || form.status !== flow.status || form.kind !== (flow.kind ?? 'uses')
     || form.data_description !== flow.data_description || form.description !== flow.description;
 
   const save = async () => {
@@ -252,6 +257,17 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
             </div>
           </div>
           <div className="mb-2">
+            <label className="form-label small" htmlFor="nsc-edge-kind">{t('Impact analysis')}</label>
+            <select id="nsc-edge-kind" className="form-select form-select-sm" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
+              {KINDS.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
+            </select>
+            {form.kind === 'proxy' && (
+              <div className="form-text small">
+                {t('If {source} fails, {target} counts as unreachable.', { source: source?.name ?? '?', target: target?.name ?? '?' })}
+              </div>
+            )}
+          </div>
+          <div className="mb-2">
             <label className="form-label small" htmlFor="nsc-edge-data">{t('Data')}</label>
             <input id="nsc-edge-data" className="form-control form-control-sm" maxLength={200} value={form.data_description} onChange={(e) => setForm({ ...form, data_description: e.target.value })} />
           </div>
@@ -276,7 +292,38 @@ export function EdgePanel({ flow, source, target, onClose, onChanged }: Props) {
           </div>
         )}
 
+        <h6 className="small text-uppercase text-muted">{t('Line on this canvas')}</h6>
+        <div className="nsc-color-row mb-1" role="group" aria-label={t('Line color')}>
+          <button
+            type="button"
+            className={`nsc-color-swatch nsc-color-auto${edgeStyle?.color ? '' : ' active'}`}
+            title={t('Color of the status')}
+            disabled={!edgesEditable}
+            onClick={() => onEdgeStyle({ color: undefined })}
+          />
+          {LINE_COLORS.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={`nsc-color-swatch${edgeStyle?.color === value ? ' active' : ''}`}
+              style={{ background: `#${value}` }}
+              title={t(label)}
+              disabled={!edgesEditable}
+              onClick={() => onEdgeStyle({ color: value })}
+            />
+          ))}
+        </div>
+        {edgesEditable && (
+          <div className="d-flex align-items-center gap-2 mb-3">
+            <span className="small text-muted flex-grow-1">{t('Drag the dots on the selected line to bend it.')}</span>
+            <button type="button" className="btn btn-sm btn-outline-secondary" disabled={!edgeStyle?.points.length} onClick={() => onEdgeStyle({ points: [] })}>
+              <i className="mdi mdi-vector-line" /> {t('Reset shape')}
+            </button>
+          </div>
+        )}
+
         <h6 className="small text-uppercase text-muted">{t('Intermediate stations (hops)')}</h6>
+        <p className="small text-muted mb-2">{t('If one of them fails, the connection breaks (impact analysis).')}</p>
         {hopError && <div className="alert alert-danger py-1 small">{hopError}</div>}
         {hops.length === 0 && <div className="text-muted small mb-2">{t('None, direct connection.')}</div>}
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>

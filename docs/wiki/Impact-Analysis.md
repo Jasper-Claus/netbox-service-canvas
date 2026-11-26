@@ -17,6 +17,7 @@
 |---|---|
 | Red | **Fails with it.** The object itself and everything that cannot run without it. |
 | Orange | **Affected.** Objects that still run, but depend on something that failed. |
+| Yellow, dashed | **Unreachable.** Objects that still run, but sit behind a failed proxy (see below). |
 | Grey | Not affected. |
 
 ## How it is computed
@@ -32,6 +33,19 @@ The analysis only uses relations that are documented in NetBox and drawn on the 
 **Orange** follows the connections, against their direction: if A sends data to B and B has failed, A is affected.
 This continues step by step: if A → B → C and C fails, both B and A are marked. Bidirectional connections count in
 both directions. Disabled connections are ignored; planned ones count.
+
+**Hops** count too: if a connection runs through a hop (for example a reverse proxy or a tunnel) and the hop fails,
+the source of the connection is marked as affected.
+
+**Yellow** follows connections of kind **Proxy** in their direction. Set the kind when drawing a line or later in the
+connection panel:
+
+- *Uses* (default): the source needs the target. Paperless → Postgres.
+- *Proxy*: the target is reached through the source. Traefik → Paperless.
+
+If the proxy fails, every target behind it is marked as unreachable, and so are the applications of those services.
+Proxy chains are followed: Traefik → Authelia → Grafana marks both Authelia and Grafana if Traefik fails. Users of an
+unreachable service are not marked, because the service itself still runs.
 
 ## Limits
 

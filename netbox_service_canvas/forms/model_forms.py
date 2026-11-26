@@ -91,7 +91,7 @@ class ServiceConnectionForm(GenericObjectFormMixin, PrimaryModelForm):
         FieldSet('source_type', 'source', name=_('Source')),
         FieldSet('target_type', 'target', name=_('Target')),
         FieldSet(
-            'direction', 'status',
+            'direction', 'status', 'kind',
             InlineFields('protocol', 'port', label=_('Protocol / Port')),
             'data_description', 'description', 'tags',
             name=_('Connection'),
@@ -102,7 +102,7 @@ class ServiceConnectionForm(GenericObjectFormMixin, PrimaryModelForm):
         model = ServiceConnection
         fields = (
             'source_type', 'target_type', 'direction', 'protocol', 'port', 'data_description', 'status',
-            'description', 'owner', 'comments', 'tags',
+            'kind', 'description', 'owner', 'comments', 'tags',
         )
 
     def __init__(self, *args, **kwargs):
@@ -194,10 +194,12 @@ class ApplicationForm(PrimaryModelForm):
     )
 
     fieldsets = (
-        FieldSet('name', 'status', 'version', 'web_url', 'description', 'tags', name=_('Application')),
+        FieldSet('name', 'status', 'version', 'icon', 'web_url', 'description', 'tags', name=_('Application')),
         FieldSet('services', name=_('Services')),
     )
 
     class Meta:
         model = Application
-        fields = ('name', 'status', 'version', 'web_url', 'services', 'description', 'owner', 'comments', 'tags')
+        fields = (
+            'name', 'status', 'version', 'icon', 'web_url', 'services', 'description', 'owner', 'comments', 'tags',
+        )

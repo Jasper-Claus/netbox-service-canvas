@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ApiError } from '../api';
-import { DIRECTIONS, PROTOCOLS, STATUSES, guessProtocol } from '../choices';
+import { DIRECTIONS, KINDS, PROTOCOLS, STATUSES, guessProtocol } from '../choices';
 import { useEditor } from '../context';
 import { parseKey } from '../graph';
 import type { ObjectDescriptor } from '../types';
@@ -36,6 +36,7 @@ export function ConnectDialog({ source, target, onClose, onDone }: Props) {
   const [port, setPort] = useState(targetPort ? String(targetPort) : '');
   const [direction, setDirection] = useState('uni');
   const [status, setStatus] = useState('active');
+  const [kind, setKind] = useState('uses');
   const [dataDescription, setDataDescription] = useState('');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
@@ -64,6 +65,7 @@ export function ConnectDialog({ source, target, onClose, onDone }: Props) {
           port: portNumber,
           direction,
           status,
+          kind,
           data_description: dataDescription.trim(),
           description: description.trim(),
         });
@@ -170,6 +172,17 @@ export function ConnectDialog({ source, target, onClose, onDone }: Props) {
               <select id="nsc-flow-status" className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
                 {STATUSES.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
               </select>
+            </div>
+          </div>
+          <div className="mb-3">
+            <label className="form-label" htmlFor="nsc-flow-kind">{t('Impact analysis')}</label>
+            <select id="nsc-flow-kind" className="form-select" value={kind} onChange={(e) => setKind(e.target.value)}>
+              {KINDS.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
+            </select>
+            <div className="form-text">
+              {kind === 'proxy'
+                ? t('If {source} fails, {target} counts as unreachable.', { source: source.name, target: target.name })
+                : t('If {target} fails, {source} is affected.', { source: source.name, target: target.name })}
             </div>
           </div>
           <div className="mb-3">

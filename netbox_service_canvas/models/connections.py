@@ -9,7 +9,12 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel, PrimaryModel
 
-from ..choices import ConnectionDirectionChoices, ConnectionProtocolChoices, ConnectionStatusChoices
+from ..choices import (
+    ConnectionDirectionChoices,
+    ConnectionKindChoices,
+    ConnectionProtocolChoices,
+    ConnectionStatusChoices,
+)
 from ..constants import CONNECTION_ENDPOINT_MODELS, HOP_OBJECT_MODELS, PORT_MAX, PORT_MIN
 
 __all__ = (
@@ -91,9 +96,17 @@ class ServiceConnection(PrimaryModel):
         choices=ConnectionStatusChoices,
         default=ConnectionStatusChoices.STATUS_ACTIVE,
     )
+    kind = models.CharField(
+        verbose_name=_('kind'),
+        max_length=10,
+        choices=ConnectionKindChoices,
+        default=ConnectionKindChoices.KIND_USES,
+        help_text=_('Proxy: the target is only reachable through the source (reverse proxy, load balancer, gateway)'),
+    )
 
     clone_fields = (
         'source_type', 'source_id', 'target_type', 'direction', 'protocol', 'port', 'data_description', 'status',
+        'kind',
     )
 
     class Meta:

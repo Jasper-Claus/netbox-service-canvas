@@ -852,6 +852,11 @@
   background: color-mix(in srgb, #f76707 10%, var(--nsc-card));
   box-shadow: 0 0 0 3px rgba(247, 103, 7, 0.45);
 }
+.nsc-root .nsc-impact-unreachable {
+  background: color-mix(in srgb, #f59f00 12%, var(--nsc-card));
+  box-shadow: 0 0 0 3px rgba(245, 159, 0, 0.5);
+  border-style: dashed;
+}
 .nsc-root .nsc-impact-none {
   opacity: 0.35;
 }
@@ -951,4 +956,79 @@
   align-items: center;
   gap: 0.25rem;
   font-size: 0.75rem;
+}
+
+/* Bend points of a selected connection line */
+.nsc-root .nsc-edge-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tblr-primary, #00857d);
+  border: 2px solid var(--nsc-card, #fff);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  cursor: move;
+  pointer-events: all;
+  z-index: 10;
+}
+.nsc-root .nsc-edge-handle-add {
+  width: 10px;
+  height: 10px;
+  background: var(--nsc-card, #fff);
+  border: 2px solid var(--tblr-primary, #00857d);
+  opacity: 0.75;
+  cursor: copy;
+}
+.nsc-root .nsc-edge-handle-add:hover {
+  opacity: 1;
+}
+/* Proxy connections: slightly wider line so they stand out */
+.nsc-root .nsc-edge-proxy .react-flow__edge-path {
+  stroke-width: 3 !important;
+}
+
+/* Color swatches (connection lines) */
+.nsc-root .nsc-color-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.nsc-root .nsc-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+  padding: 0;
+}
+.nsc-root .nsc-color-swatch.active {
+  border-color: var(--nsc-card, #fff);
+  box-shadow: 0 0 0 2px var(--tblr-primary, #00857d);
+}
+.nsc-root .nsc-color-auto {
+  background: linear-gradient(135deg, #2fb344 50%, #17a2b8 50%);
+}
+.nsc-root .nsc-color-swatch:disabled {
+  opacity: 0.5;
+}
+
+/* Icon picker (applications) */
+.nsc-root .nsc-icon-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+  gap: 0.25rem;
+}
+.nsc-root .nsc-icon-option {
+  height: 32px;
+  border: 1px solid var(--tblr-border-color, #dce1e7);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.nsc-root .nsc-icon-option.active {
+  border-color: var(--tblr-primary, #00857d);
+  background: color-mix(in srgb, var(--tblr-primary, #00857d) 12%, transparent);
+  color: var(--tblr-primary, #00857d);
 }

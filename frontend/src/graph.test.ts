@@ -19,6 +19,7 @@ import {
   type CanvasNode,
 } from './graph';
 import { runsOnPair } from './components/ConnectDialog';
+import { halfway, smoothPath } from './components/FlowEdge';
 import type { Flow, GraphResponse, ObjectDescriptor } from './types';
 import { parsePorts, slugify } from './util';
 
@@ -110,6 +111,25 @@ describe('buildNodes / buildEdges', () => {
     const bi = flowEdge({ ...flow, direction: 'bi', status: 'planned' });
     expect(bi.markerStart).toBeDefined();
     expect(bi.style?.strokeDasharray).toBe('6 4');
+  });
+
+  it('applies the per-canvas line style (bend points, color)', () => {
+    const e = flowEdge(flow, { points: [{ x: 10, y: 20 }], color: 'ae3ec9' });
+    expect(e.type).toBe('flow');
+    expect(e.style?.stroke).toBe('#ae3ec9');
+    expect(e.data).toMatchObject({ kind: 'flow', points: [{ x: 10, y: 20 }], color: 'ae3ec9' });
+    const plain = buildEdges(graph.edges, new Set(['dcim.device:1', 'ipam.service:1', 'ipam.service:2']), undefined, {});
+    const plainFlow = plain.find((x) => x.data?.kind === 'flow')!;
+    expect(plainFlow.data).toMatchObject({ points: [] });
+  });
+
+  it('draws a smooth line through the bend points', () => {
+    expect(smoothPath([{ x: 0, y: 0 }, { x: 10, y: 0 }])).toBe('M 0,0 C 1.6666666666666667,0 8.333333333333334,0 10,0');
+    const path = smoothPath([{ x: 0, y: 0 }, { x: 50, y: 50 }, { x: 100, y: 0 }]);
+    expect(path.match(/C /g)).toHaveLength(2);
+    expect(path.endsWith('100,0')).toBe(true);
+    expect(halfway([{ x: 0, y: 0 }, { x: 100, y: 0 }])).toEqual({ x: 50, y: 0 });
+    expect(halfway([{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 30 }])).toEqual({ x: 10, y: 10 });
   });
 });
 
@@ -347,5 +367,47 @@ describe('impact analysis', () => {
     expect([...impact.indirect]).toEqual(['ipam.service:2']);
     // A failing VM does not take its host down
     expect(computeImpact(VM, hosted).direct.has('dcim.device:1')).toBe(false);
+  });
+
+  it('marks targets behind a failed reverse proxy as unreachable', () => {
+    const PROXY = 'ipam.service:10';
+    const PROXY2 = 'ipam.service:11';
+    const proxied = {
+      runs_on: [{ id: 'r1', source: PROXY, target: 'dcim.device:9' }],
+      part_of: [{ id: 'p1', source: 'ipam.service:1', target: APP }],
+      flows: [
+        // traefik -> paperless / traefik -> second proxy -> grafana
+        { ...flow, id: 1, source: PROXY, target: 'ipam.service:1', kind: 'proxy' as const },
+        { ...flow, id: 2, source: PROXY, target: PROXY2, kind: 'proxy' as const },
+        { ...flow, id: 3, source: PROXY2, target: 'ipam.service:3', kind: 'proxy' as const },
+        // paperless uses postgres: unaffected by the proxy
+        { ...flow, id: 4, source: 'ipam.service:1', target: 'ipam.service:5' },
+      ],
+    };
+    const impact = computeImpact('dcim.device:9', proxied);
+    expect([...impact.direct]).toEqual([PROXY]);
+    expect([...impact.unreachable].sort()).toEqual([APP, 'ipam.service:1', PROXY2, 'ipam.service:3'].sort());
+    expect(impact.indirect.size).toBe(0);
+    expect([...impact.flows].sort()).toEqual([1, 2, 3]);
+    expect(impactRole(impact, 'ipam.service:1')).toBe('unreachable');
+    expect(impactRole(impact, 'ipam.service:5')).toBe('none');
+    // A failing backend does not affect its proxy
+    expect(computeImpact('ipam.service:1', proxied).indirect.has(PROXY)).toBe(false);
+  });
+
+  it('breaks connections whose hop fails', () => {
+    const viaHop = {
+      runs_on: [],
+      part_of: [],
+      flows: [
+        { ...flow, id: 1, source: 'ipam.service:2', target: 'ipam.service:1', hop_keys: ['ipam.service:7'] },
+        { ...flow, id: 2, source: 'ipam.service:7', target: 'ipam.service:3', kind: 'proxy' as const, hop_keys: ['dcim.device:4'] },
+      ],
+    };
+    const hopFails = computeImpact('ipam.service:7', viaHop);
+    expect([...hopFails.indirect]).toEqual(['ipam.service:2']);
+    expect(hopFails.flows.has(1)).toBe(true);
+    // A failing hop of a proxy connection makes its target unreachable
+    expect([...computeImpact('dcim.device:4', viaHop).unreachable]).toEqual(['ipam.service:3']);
   });
 });

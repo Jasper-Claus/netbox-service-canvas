@@ -3,6 +3,25 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Bendable connection lines**: select a line in edit mode and drag the small dots to add bend points. Double-click a
+  point to remove it, *Reset shape* straightens the line again. The shape is saved per canvas.
+- **Line colours**: pick a colour for a connection on this canvas in the connection panel (default: status colour).
+- **Proxy connections** (new field *Kind* on service connections): *Proxy* means the target is reached through the
+  source, for example a reverse proxy in front of an app. The impact analysis marks everything behind a failed proxy
+  in yellow as *unreachable*, including proxy chains and the applications of those services.
+- **Hops count in the impact analysis**: if a hop of a connection fails, the connection breaks.
+- **Application icons**: choose one of 24 icons (database, web, DNS, backup, media, …) for an application. It is shown
+  on the canvas, in the sidebar and in the node panel.
+
+### Changed
+- Migration `0003` adds `Application.icon`, `ServiceConnection.kind` (default *uses*, so existing connections behave
+  as before) and `Canvas.edge_styles`.
+- `PUT …/canvases/<id>/layout/` accepts and returns `edge_styles`; the graph API returns `kind` and `hop_keys` for
+  each connection.
+
 ## [0.3.0] – 2026-11-25
 
 ### Added

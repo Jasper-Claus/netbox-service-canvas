@@ -43,7 +43,7 @@ class ServiceConnectionAPITest(APIViewTestCases.APIViewTestCase):
             {
                 'source_type': 'ipam.service', 'source_id': o['traefik'].pk,
                 'target_type': 'ipam.service', 'target_id': o['grafana'].pk,
-                'protocol': 'https', 'port': 3000,
+                'protocol': 'https', 'port': 3000, 'kind': 'proxy',
             },
         ]
 
@@ -88,7 +88,7 @@ class ConnectionHopAPITest(APIViewTestCases.APIViewTestCase):
 class ApplicationAPITest(APIViewTestCases.APIViewTestCase):
     model = Application
     view_namespace = NAMESPACE
-    brief_fields = ['description', 'display', 'id', 'name', 'status', 'url', 'version']
+    brief_fields = ['description', 'display', 'icon', 'id', 'name', 'status', 'url', 'version']
     graphql_base_name = 'service_canvas_application'
     bulk_update_data = {
         'status': 'planned',
@@ -101,7 +101,10 @@ class ApplicationAPITest(APIViewTestCases.APIViewTestCase):
         Application.objects.create(name='Prometheus').services.set([o['prometheus']])
         Application.objects.create(name='Speedtest Tracker')
         cls.create_data = [
-            {'name': 'Paperless', 'version': '2.14', 'web_url': 'https://paperless.example.com'},
+            {
+                'name': 'Paperless', 'version': '2.14', 'web_url': 'https://paperless.example.com',
+                'icon': 'mdi-database',
+            },
             {'name': 'Traefik', 'status': 'active', 'services': [o['traefik'].pk]},
             {'name': 'Home Assistant', 'status': 'planned', 'services': [o['speedtest'].pk, o['traefik'].pk]},
         ]
@@ -296,6 +299,47 @@ class CanvasLayoutAPITest(APITestCase):
         self.assertIsNone(self.node.group)
 
 
+class CanvasEdgeStylesAPITest(APITestCase):
+    """
+    Line shapes and colors of connections, saved through the layout endpoint.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.canvas = Canvas.objects.create(name='Homelab')
+
+    def url(self):
+        return reverse(f'{NAMESPACE}-api:canvas-layout', kwargs={'pk': self.canvas.pk})
+
+    def test_edge_styles_saved_and_normalized(self):
+        self.add_permissions('netbox_service_canvas.view_canvas', 'netbox_service_canvas.change_canvas')
+        payload = {'edge_styles': {
+            '5': {'points': [{'x': 10.04, 'y': 20}], 'color': 'ff0000'},
+            '6': {'points': [], 'color': ''},  # empty: dropped
+        }}
+        response = self.client.put(self.url(), payload, format='json', **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        expected = {'5': {'points': [{'x': 10.0, 'y': 20.0}], 'color': 'ff0000'}}
+        self.canvas.refresh_from_db()
+        self.assertEqual(self.canvas.edge_styles, expected)
+        self.assertEqual(response.data['edge_styles'], expected)
+        self.assertEqual(response.data['updated'], 1)
+
+        # Unchanged styles are not written again
+        response = self.client.put(self.url(), payload, format='json', **self.header)
+        self.assertEqual(response.data['updated'], 0)
+        # Omitting edge_styles leaves them untouched
+        response = self.client.put(self.url(), {'nodes': []}, format='json', **self.header)
+        self.canvas.refresh_from_db()
+        self.assertEqual(self.canvas.edge_styles, expected)
+
+    def test_edge_styles_reject_invalid_keys(self):
+        self.add_permissions('netbox_service_canvas.view_canvas', 'netbox_service_canvas.change_canvas')
+        payload = {'edge_styles': {'abc': {'points': []}}}
+        response = self.client.put(self.url(), payload, format='json', **self.header)
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+
+
 class CanvasGraphAPITest(APITestCase):
     """
     GET /api/plugins/service-canvas/canvases/<id>/graph/ and .../missing/
@@ -342,6 +386,8 @@ class CanvasGraphAPITest(APITestCase):
         self.assertEqual([f['id'] for f in flows], [self.flow.pk])
         self.assertEqual(flows[0]['port'], 3000)
         self.assertEqual(flows[0]['hop_count'], 0)
+        self.assertEqual(flows[0]['kind'], 'uses')
+        self.assertEqual(flows[0]['hop_keys'], [])
 
     def test_graph_include_unsaved(self):
         self.grant_view()

@@ -206,10 +206,11 @@ several canvases. If an object is deleted in NetBox, it disappears from every ca
   version and URL.
 - **Connections** between services, devices, VMs and applications, with direction, protocol, port, a description of
   the data and status. Each connection can have **hops**: intermediate stations such as a reverse proxy, VLAN or
-  tunnel.
+  tunnel. Mark a connection as **proxy** when the target is only reachable through the source.
 - **Canvas editor**: drag and drop from a searchable sidebar, groups, sticky notes, automatic layout, minimap and
-  autosave.
-- **Impact analysis**: shows what fails together with a host and what depends on it.
+  autosave. Lines can be bent and coloured, applications get their own icon.
+- **Impact analysis**: shows what fails together with a host, what depends on it and what is no longer reachable
+  behind a failed reverse proxy.
 - **Export** as PNG, SVG or a printable A4 PDF with title, date and legend.
 - **Integrated into NetBox**: lists, filters, CSV import, search, REST API, GraphQL and change log for all objects.
   Device, VM, service and application pages get a *Connections* tab and a *Show on canvas* button.
