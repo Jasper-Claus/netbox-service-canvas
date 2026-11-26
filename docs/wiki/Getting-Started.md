@@ -1,52 +1,85 @@
 # Getting Started
 
+This page walks you through a first canvas with a small homelab: a NAS, a VM called `monitoring`, Grafana and
+Prometheus. Use your own names; the steps are the same.
+
 ## 1. Install
 
-Requirements: **NetBox 4.5.x** and Python 3.12+.
+Follow the [installation section of the README](https://github.com/Jasper-Claus/netbox-service-canvas#installation).
+It covers netbox-docker (including a setup for people who have never installed a plugin) and a plain install.
 
-The package is on [PyPI](https://pypi.org/project/netbox-service-canvas/).
+When it worked, the NetBox menu shows **Plugins → Service Canvas**. If the editor later stays at "Loading canvas…",
+the static files are missing; see [[FAQ]].
 
-**Plain install:** in the NetBox virtual environment run `pip install netbox-service-canvas` and add
-`netbox-service-canvas` to `local_requirements.txt` so upgrades keep it.
+## 2. What you need in NetBox
 
-**netbox-docker:** add `netbox-service-canvas` to `plugin_requirements.txt`.
+The canvas shows NetBox objects. It does not invent its own. For the example you need:
 
-Enable it in `configuration/plugins.py`. If you use netbox-branching, keep `netbox_branching` **last**:
+- a **device** `nas` and a **virtual machine** `monitoring` (create them in NetBox as usual),
+- optionally: set the VM's *Device* field to the host it runs on. Then the canvas knows that `monitoring` fails when
+  that host fails.
 
-```python
-PLUGINS = ["netbox_service_canvas"]
-PLUGINS_CONFIG = {"netbox_service_canvas": {"grid_size": 10}}
-```
+Services and applications can be created later directly in the editor.
 
-Rebuild, migrate and collect static files:
+## 3. Create a canvas
 
-```bash
-docker compose build --no-cache netbox && docker compose up -d
-docker compose exec netbox /opt/netbox/netbox/manage.py migrate
-docker compose exec netbox /opt/netbox/netbox/manage.py collectstatic --no-input
-```
+1. Go to **Plugins → Service Canvas → Canvases** and click **Add**.
+2. Name it *Homelab* and save.
+3. Open the **Editor** tab.
 
-A detailed guide with backup, update and uninstall (German) is in
-[docs/install-netbox-docker.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/docs/install-netbox-docker.md).
+A canvas is only a view. You can create several (for example one per site) and the same object can appear on all of
+them.
 
-## 2. Your first canvas
+## 4. Put hosts on the canvas
 
-1. Go to **Plugins → Service Canvas → Canvases → Add**, name it e.g. *Homelab* and save.
-2. Open the **Editor** tab.
-3. In the left sidebar, drag your **Devices** and **VMs** onto the canvas (or click **+**).
-4. Click **"Add missing"**. The editor pulls in the services on those hosts and their peers.
-5. Drag from the **dot on the right** of a node onto another node to create a **data flow**.
-6. Click **"Auto layout"**, then tidy up by hand. Autosave stores the layout.
+The sidebar on the left lists devices, VMs, services and applications. Search for `nas` and drag it onto the canvas,
+or click **+** next to it. Do the same for `monitoring`.
 
-## 3. Add things that don't exist yet
+Then click **Add missing** in the toolbar. The editor looks up everything in NetBox that belongs to the objects on the
+canvas (services on these hosts, VMs on these devices, connection peers) and offers to add it.
 
-These buttons are under **"Create new"** at the bottom of the sidebar:
+## 5. Add a service
 
-- **Device** and **VM** open the normal NetBox form in a new tab. Back in the editor, the list refreshes
-  automatically.
-- **Service** creates a NetBox service on a host, optionally together with an application. See
-  [[Service vs Application]].
-- **Application** groups existing services.
-- **"Note"** adds a sticky note.
+Suppose Grafana runs on `monitoring` on TCP port 3000, but NetBox does not know it yet.
+
+1. At the bottom of the sidebar, under **Create new**, click **Service**.
+2. Name `grafana`, protocol TCP, port `3000`, host `monitoring`.
+3. Under *Application (optional)* choose **New application** and name it `Grafana`.
+4. Click **Create service**.
+
+NetBox now has a service `grafana` on `monitoring` and an application `Grafana`. Both appear on the canvas: a grey
+dashed line shows that the service runs on the VM, a dotted purple line shows that it belongs to the application.
+See [[Service vs Application]] for when you need an application at all.
+
+Create a second service `prometheus` (TCP 9090 on `monitoring`) the same way, this time with application **None**.
+
+## 6. Draw a connection
+
+Grafana reads metrics from Prometheus. To record that:
+
+1. In edit mode every node has a small dot on its right edge.
+2. Drag from that dot onto the `prometheus` service and let go.
+3. Choose **Data flow**. The port is taken from the target service. Optionally describe the data, for example
+   *metrics*.
+4. Click **Create connection**.
+
+This creates a real **service connection** in NetBox. It also shows up in the *Connections* tab of both services and
+in the REST API, even without the canvas.
+
+## 7. Arrange and save
+
+Click **Auto layout** to arrange everything from left to right, then move things by hand if you like. With
+**Autosave** switched on (the default), every change is stored right away. The status next to it shows *Saved*.
+
+## 8. Try the impact analysis
+
+Click `monitoring` and then **Impact analysis** in the panel on the right. The VM, its services and the `Grafana`
+application turn red: they fail with it. Anything that sends data to them turns orange. Click × in the toolbar to end
+the analysis. More in [[Impact Analysis]].
+
+## 9. Export
+
+Use **PDF (A4)** in the toolbar to get a printable page with title, date and legend, or PNG / SVG for a wiki or
+ticket. See [[Export]].
 
 Next: [[Editor Guide]]

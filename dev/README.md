@@ -1,6 +1,6 @@
 # Testumgebung: NetBox 4.5.7 mit netbox-docker auf einer Ubuntu-VM
 
-Diese Anleitung baut auf einer **leeren Ubuntu-VM** eine NetBox **v4.5.7** auf, also dieselbe Version wie auf `rick`.
+Diese Anleitung baut auf einer **leeren Ubuntu-VM** eine NetBox **v4.5.7** zum Entwickeln und Testen auf.
 Grundlage ist netbox-docker, Release **4.0.2**, das das Image `netboxcommunity/netbox:v4.5.7-4.0.2` verwendet.
 Das Plugin wird dabei direkt aus deinem Code-Ordner geladen. Wenn du Code änderst, lädt NetBox ihn automatisch neu,
 ein Image-Neubau ist dafür nicht nötig.
@@ -44,14 +44,14 @@ Danach **einmal ab- und wieder anmelden**, damit die Gruppe `docker` greift. Zum
 
 ## 2. Plugin-Code auf die VM bringen
 
-**Variante A, direkt vom Windows-Rechner** (PowerShell, im Ordner `Documents\netbox-service-canvas`):
+**Variante A, direkt vom Windows-Rechner** (PowerShell, im Ordner mit dem Plugin-Code):
 
 ```powershell
 ssh user@VM-IP "mkdir -p ~/netbox-service-canvas"
 scp -r .\pyproject.toml .\README.md .\dev .\netbox_service_canvas user@VM-IP:~/netbox-service-canvas/
 ```
 
-**Variante B, sobald das Repo auf GitHub liegt:**
+**Variante B, von GitHub:**
 
 ```bash
 git clone https://github.com/Jasper-Claus/netbox-service-canvas.git ~/netbox-service-canvas
@@ -94,7 +94,7 @@ docker compose exec netbox /opt/netbox/netbox/manage.py createsuperuser
 
 Jetzt im Browser **http://VM-IP:8000** öffnen und dich anmelden.
 
-### Was die Dev-Dateien anders machen als dein Produktiv-Setup auf `rick`
+### Was die Dev-Dateien anders machen als ein Produktiv-Setup
 
 | Datei | Zweck |
 |---|---|
@@ -102,7 +102,8 @@ Jetzt im Browser **http://VM-IP:8000** öffnen und dich anmelden.
 | `dev/docker-compose.override.yml` | Plugin-Ordner als Volume, `DEBUG=true`, `runserver` statt Granian, Port 8000 |
 | `dev/plugins.py` | `PLUGINS = ['netbox_service_canvas']` |
 
-In Produktion (`rick`) läuft es dagegen wie gewohnt: Eintrag in `plugin_requirements.txt`, Image bauen, `collectstatic`.
+In Produktion läuft es dagegen wie gewohnt: Eintrag in `plugin_requirements.txt`, `collectstatic` im
+`Dockerfile-Plugins`, Image bauen.
 Das beschreibt [docs/install-netbox-docker.md](../docs/install-netbox-docker.md).
 
 ## 4. Beispieldaten laden

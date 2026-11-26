@@ -2,20 +2,21 @@
 
 ![NetBox Service Canvas](https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/editor.png)
 
-**NetBox Service Canvas** is a NetBox 4.5 plugin that shows *which services run where*, *who talks to whom* and
-*what breaks if a host fails*. It draws them on an interactive canvas built from real NetBox data.
+**NetBox Service Canvas** is a plugin for NetBox 4.5. It shows on an interactive canvas which services run where, how
+they talk to each other and what breaks if a host fails. The canvas is built from NetBox data.
 
-## Start here
+## Pages
 
 | Page | What you'll learn |
 |---|---|
-| [[Getting Started]] | Install the plugin and build your first canvas in 5 minutes |
+| [[Getting Started]] | Build a first canvas step by step with a small homelab example |
 | [[Service vs Application]] | The difference between the two, and when you need which |
-| [[Editor Guide]] | Every button in the editor, edit vs. view mode, removing and deleting |
-| [[Impact Analysis]] | "What breaks if this box goes down?" |
-| [[Export]] | PNG, SVG and the print-ready A4 PDF |
+| [[Editor Guide]] | Sidebar, toolbar, nodes, connections, groups, notes, saving, removing and deleting |
+| [[Impact Analysis]] | What the colours mean, how it is computed and where its limits are |
+| [[Export]] | PNG, SVG and the printable A4 PDF |
+| [[API]] | REST API and GraphQL |
 | [[FAQ]] | Common questions and troubleshooting |
 
-> The editor follows your NetBox language: English by default, German if NetBox is set to German.
-
-The full README is on the [repository front page](https://github.com/Jasper-Claus/netbox-service-canvas).
+Installation is described in the
+[README](https://github.com/Jasper-Claus/netbox-service-canvas#installation). The editor follows your NetBox
+language: English by default, German if NetBox is set to German.
