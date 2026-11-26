@@ -91,4 +91,4 @@ jobs:
       - name: Check for missing migrations
         run: python netbox/netbox/manage.py makemigrations netbox_service_canvas --check --dry-run
       - name: Run the plugin's tests
-        run: python netbox/netbox/manage.py test netbox_service_canvas --parallel
+        run: python netbox/netbox/manage.py test netbox_service_canvas -v 2
