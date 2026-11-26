@@ -2,138 +2,46 @@
 
 # 🗺️ NetBox Service Canvas
 
-**See which services run where and how they talk to each other, right inside NetBox.**
-
-An interactive, drag-and-drop canvas for [NetBox](https://github.com/netbox-community/netbox) that turns your
-devices, VMs, services and applications into a living architecture diagram. The diagram is built from real
-NetBox data, not just drawn.
+A NetBox plugin that shows on an interactive canvas which services run where, how they talk to each other and what
+breaks if a host fails.
 
 [![NetBox](https://img.shields.io/badge/NetBox-4.5.x-0d6efd?logo=netbox&logoColor=white)](https://github.com/netbox-community/netbox)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776ab?logo=python&logoColor=white)](https://www.python.org/)
-[![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=black)](https://react.dev/)
 [![PyPI](https://img.shields.io/pypi/v/netbox-service-canvas?logo=pypi&logoColor=white)](https://pypi.org/project/netbox-service-canvas/)
 [![License](https://img.shields.io/badge/License-Apache--2.0-green)](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/LICENSE)
-[![Built with AI](https://img.shields.io/badge/Built%20100%25%20with-AI-8a2be2?logo=anthropic&logoColor=white)](#-built-100-with-ai)
 [![CI](https://github.com/Jasper-Claus/netbox-service-canvas/actions/workflows/ci.yml/badge.svg)](https://github.com/Jasper-Claus/netbox-service-canvas/actions/workflows/ci.yml)
+[![Built with AI](https://img.shields.io/badge/Built%20with-AI-8a2be2?logo=anthropic&logoColor=white)](#built-with-ai)
 
-[Features](#-features) · [Install](#-installation) · [How it works](#-how-it-works) · [Permissions](#-permissions) ·
-[API](#-rest-api--graphql) · [📖 Wiki](https://github.com/Jasper-Claus/netbox-service-canvas/wiki) ·
-[🇩🇪 Deutsch](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/docs/README.de.md)
+[Installation](#installation) · [How it works](#how-it-works) · [Features](#features) ·
+[Permissions](#permissions) · [Wiki](https://github.com/Jasper-Claus/netbox-service-canvas/wiki) ·
+[Deutsch](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/docs/README.de.md)
 
 </div>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/demo.gif" alt="Demo: drag a NAS onto the canvas, add its services, draw a connection, run the impact analysis" width="100%">
-  <br><sub>Drag a host in, let <i>Add missing</i> pull in its services, draw a connection, then ask what breaks if it fails.</sub>
+  <br><sub>Drag a host in, let <i>Add missing</i> pull in its services, draw a connection, then check what breaks if it fails.</sub>
 </p>
 
 ---
 
-## 💙 Why this exists
+## Installation
 
-I love NetBox. It's the source of truth for everything in my homelab: racks, devices, VMs, IPs, VLANs. But one
-question it never answered at a glance was:
-
-> *"Which service runs on which box, and who talks to whom over which port?"*
-
-The topology plugins show cables and links. I wanted the **service layer**: Grafana pulling metrics from Prometheus,
-Paperless writing to Postgres on the NAS, the reverse proxy in front of everything. So I built this plugin, and I
-hope it's useful to you too. ✨
-
-## 🤖 Built 100% with AI
-
-Full transparency: **every line of this plugin was written by AI.** That includes the Django models, the REST and
-GraphQL API, the React editor, the tests and this README. It was created with [Claude](https://claude.ai) (Anthropic)
-through *Claude Code*, with me as the product owner. I described what I wanted, tested it in my homelab and gave
-feedback.
-
-It was an experiment in how far you can get when a NetBox fan with ideas teams up with an AI pair programmer. The
-answer: pretty far. Issues, ideas and PRs from humans (or their AIs 😄) are very welcome.
-
----
-
-## ✨ Features
-
-### 🧩 Data model (usable everywhere in NetBox, even without a canvas)
-
-| Object | What it is |
-|---|---|
-| **Service** *(NetBox core)* | A port/protocol on exactly one device or VM, e.g. `grafana, TCP 3000 on nas`. |
-| **Application** *(new)* | The software as a whole, made of one or more services, e.g. **Grafana** = web UI service + database service. Has status, version and URL. |
-| **Service Connection** *(new)* | "A talks to B": source/target can be a service, device, VM or application. Includes direction, protocol, port, *data* description and status. |
-| **Connection Hop** *(new)* | Ordered waypoints of a connection: reverse proxy, VRF, VLAN, tunnel, prefix, IP… |
-
-- Full NetBox integration: list views, filters, CSV import, bulk edit, global search, REST API, GraphQL, change log
-  and journal.
-- **Connections** tab (dependency table) on device, VM, service and application pages.
-- **Applications** panel on service, device and VM pages.
-- **Show on canvas** button that jumps straight into the editor and highlights the object.
-
-### 🎨 Canvas editor
-
-- 🖱️ **Drag & drop** devices, VMs, services and applications from a searchable sidebar.
-- 🔗 **Draw an edge to create real data.** A *data flow* creates a `ServiceConnection`, and *runs on* sets the
-  service's host.
-- 🪟 **Node panel** (click any node): details, its connections, quick edit for services and applications, a link to
-  the full NetBox form (with a jump back to the editor) and *remove from canvas*.
-- ⚡ **Impact analysis**: "What breaks if this box goes down?" Red marks what fails with it (a hypervisor takes its
-  VMs, their services and applications down with it), orange marks everything that depends on it (transitively).
-- 📝 **Sticky notes** for maintenance windows, TODOs and explanations.
-- 🗂️ **Groups** (racks, clusters, VLANs…) with name, colour and resizing.
-- 🪄 **Auto layout** (ELK), *add missing* (pulls in related hosts, services and peers), minimap, snap to grid.
-- 💾 **Autosave**: only what actually changed is written, so your change log isn't flooded.
-- 🖨️ **Export** as PNG, SVG or a **print-ready DIN A4 PDF** with header and legend.
-- 🌗 Follows the NetBox **light/dark theme**. **Read-only mode** respects NetBox permissions, including object
-  constraints.
-- 🔒 **No CDNs, no external calls.** The frontend is bundled with the plugin.
-
-### 🧭 Service vs. Application (in one sentence each)
-
-- **Service** = *where* something listens: one port on one host (`grafana · TCP 3000 · nas`).
-- **Application** = *what* it is: the software, optionally spanning several services and hosts (`Grafana`).
-
-For a simple one-port app you only need a service. When you create a service in the editor, you can create or link
-the application in the same dialog.
-
-### 📸 Screenshots
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/editor.png" alt="The canvas editor inside NetBox: hosts, services, applications and data flows" width="100%">
-</p>
-
-<table>
-  <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/impact.png" alt="Impact analysis: truenas fails, red and orange mark everything that breaks with it"></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/new-service.png" alt="Create a service and its application in one dialog"></td>
-  </tr>
-  <tr>
-    <td align="center">⚡ <b>Impact analysis</b>: what breaks if <code>truenas</code> goes down?</td>
-    <td align="center">➕ <b>New service</b> with an optional application, in one dialog</td>
-  </tr>
-</table>
-
-> The editor follows your NetBox language: English by default, German if NetBox is set to German.
-> Screenshots show a demo homelab, not real infrastructure.
-
----
-
-## 📦 Installation
-
-Requirements: NetBox 4.5.x (tested with 4.5.7) and Python 3.12+.
+Requirements: NetBox 4.5.x and Python 3.12 or newer.
 
 > [!WARNING]
-> The plugin declares support for NetBox 4.5 only. On a newer minor version (e.g. 4.6) NetBox refuses to start
-> while the plugin is enabled. Before upgrading NetBox, check for a matching plugin release, or remove
-> `netbox_service_canvas` from `PLUGINS` first.
+> The plugin declares support for NetBox 4.5 only. On a newer minor version (for example 4.6) the whole of NetBox
+> refuses to start while the plugin is enabled. Before upgrading NetBox, check the
+> [releases](https://github.com/Jasper-Claus/netbox-service-canvas/releases) for a matching plugin version, or
+> remove `netbox_service_canvas` from `PLUGINS` first.
 
 ### netbox-docker
 
-All files below are in your netbox-docker folder (next to `docker-compose.yml`). New to plugins in netbox-docker?
-Create `plugin_requirements.txt`, `Dockerfile-Plugins` and `docker-compose.override.yml` first, as described in
-[Using NetBox Plugins](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins).
+All files below are in your netbox-docker folder, next to `docker-compose.yml`. If you have never installed a plugin
+there, read [No plugins installed yet?](#no-plugins-installed-yet) first.
 
-1. Open `plugin_requirements.txt` (e.g. `nano plugin_requirements.txt`) and add this line. It goes into the file,
-   not into the terminal:
+1. Open `plugin_requirements.txt` (for example with `nano plugin_requirements.txt`) and add this line. It goes into
+   the file, not into the terminal:
 
    ```text
    netbox-service-canvas
@@ -143,11 +51,11 @@ Create `plugin_requirements.txt`, `Dockerfile-Plugins` and `docker-compose.overr
    NetBox while the image is built:
 
    ```dockerfile
-   RUN DEBUG="true" SECRET_KEY="dummydummydummydummydummydummydummydummydummydummy"        /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input
+   RUN DEBUG="true" SECRET_KEY="dummydummydummydummydummydummydummydummydummydummy" /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input
    ```
 
-3. Open `configuration/plugins.py` and add `"netbox_service_canvas"` to your existing `PLUGINS` list. Do not
-   replace the list. If you use netbox-branching, `netbox_branching` must stay last:
+3. Open `configuration/plugins.py` and add `"netbox_service_canvas"` to the existing `PLUGINS` list. Add it to the
+   list, do not replace the list. If you use netbox-branching, `netbox_branching` must stay the last entry:
 
    ```python
    PLUGINS = [
@@ -156,26 +64,69 @@ Create `plugin_requirements.txt`, `Dockerfile-Plugins` and `docker-compose.overr
    ]
    ```
 
-4. Rebuild and restart. Database migrations run automatically when the container starts:
+4. Rebuild the image and restart. Database migrations run automatically when the container starts:
 
    ```bash
    docker compose build --no-cache
    docker compose up -d
    ```
 
-5. Check: the menu shows *Plugins → Service Canvas*. Create a canvas and open its *Editor* tab. If the editor stays
-   at "Loading canvas…", the collectstatic line from step 2 is missing (see the troubleshooting section of the
-   guide below).
+5. Check: the menu shows *Plugins → Service Canvas*. Create a canvas and open its *Editor* tab. If the editor stays at
+   "Loading canvas…", see [Troubleshooting](#troubleshooting).
+
+#### No plugins installed yet?
+
+netbox-docker needs three files to install plugins. The official guide is
+[Using NetBox Plugins](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins). For this plugin
+alone, the files look like this:
+
+`plugin_requirements.txt`
+
+```text
+netbox-service-canvas
+```
+
+`Dockerfile-Plugins` (use the same image tag as in your `docker-compose.yml`)
+
+```dockerfile
+FROM netboxcommunity/netbox:v4.5
+
+COPY ./plugin_requirements.txt /opt/netbox/
+RUN /usr/local/bin/uv pip install -r /opt/netbox/plugin_requirements.txt
+
+RUN DEBUG="true" SECRET_KEY="dummydummydummydummydummydummydummydummydummydummy" /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input
+```
+
+`docker-compose.override.yml` (if the file already exists, add the `image`, `pull_policy` and `build` lines and keep
+your other settings, for example `ports`)
+
+```yaml
+services:
+  netbox:
+    image: netbox:latest-plugins
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: Dockerfile-Plugins
+  netbox-worker:
+    image: netbox:latest-plugins
+    pull_policy: never
+```
+
+Then continue with step 3 above.
 
 ### Plain install (without Docker)
+
+Run these commands as the user that owns the NetBox installation (usually with `sudo`):
 
 ```bash
 source /opt/netbox/venv/bin/activate
 pip install netbox-service-canvas
-echo netbox-service-canvas >> /opt/netbox/local_requirements.txt   # keeps it across NetBox upgrades
+echo netbox-service-canvas >> /opt/netbox/local_requirements.txt   # keeps the plugin across NetBox upgrades
 ```
 
-Add `"netbox_service_canvas"` to the existing `PLUGINS` list in `/opt/netbox/netbox/netbox/configuration.py`, then:
+Open `/opt/netbox/netbox/netbox/configuration.py` and add `"netbox_service_canvas"` to the existing `PLUGINS` list.
+Then:
 
 ```bash
 cd /opt/netbox/netbox
@@ -184,95 +135,150 @@ python manage.py collectstatic --no-input
 sudo systemctl restart netbox netbox-rq
 ```
 
-Optional settings (`PLUGINS_CONFIG`): `grid_size` (default `10`), the grid in pixels.
+Check as in step 5 above.
 
-📖 Step-by-step guide with backup, update and uninstall (German):
-[docs/install-netbox-docker.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/docs/install-netbox-docker.md) ·
-🧪 Dev/test environment on a VM or LXC: [dev/README.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/dev/README.md)
+### Configuration (optional)
+
+The plugin works without any settings. If you want a different grid, add this to `PLUGINS_CONFIG` (next to your
+existing entries):
+
+```python
+PLUGINS_CONFIG = {
+    "netbox_service_canvas": {
+        "grid_size": 10,   # grid in pixels, default 10
+    },
+}
+```
+
+### Update
+
+Make a database backup first. With netbox-docker, run `docker compose build --no-cache` and `docker compose up -d`
+again; this installs the newest release (or the version you pinned in `plugin_requirements.txt`). With a plain
+install, run `pip install --upgrade netbox-service-canvas` and repeat `migrate`, `collectstatic` and the restart.
+Then reload the editor once with Ctrl+F5.
+
+### Uninstall
+
+> [!CAUTION]
+> The first step deletes all canvases, connections, hops and applications of this plugin. Make a database backup
+> first. Devices, VMs and services in NetBox are not touched.
+
+1. Remove the plugin's tables while the plugin is still installed:
+   `docker compose exec netbox /opt/netbox/netbox/manage.py migrate netbox_service_canvas zero`
+   (plain install: `python manage.py migrate netbox_service_canvas zero`).
+2. Remove `netbox_service_canvas` from `PLUGINS` and `PLUGINS_CONFIG`, and the line from `plugin_requirements.txt`
+   or `local_requirements.txt`.
+3. Rebuild and restart (netbox-docker) or `pip uninstall netbox-service-canvas` and restart (plain install).
+4. Optional: delete the leftover static files. In netbox-docker this needs root:
+   `docker compose exec -u root netbox rm -rf /opt/netbox/netbox/static/netbox_service_canvas`
+
+A German step-by-step guide with backup and restore is in
+[docs/install-netbox-docker.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/docs/install-netbox-docker.md).
+
+### Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| The editor stays at "Loading canvas…". The browser console shows a 404 for `canvas.js` or "MIME type ("") blocked". `collectstatic` fails with `PermissionError`. | The static files were not collected. Add the `collectstatic` line to `Dockerfile-Plugins` (step 2) and rebuild. To run it by hand in netbox-docker, run it as root: `docker compose exec -u root netbox /opt/netbox/netbox/manage.py collectstatic --no-input`. Then reload with Ctrl+F5. |
+| NetBox does not start: `ImproperlyConfigured … requires NetBox …` | The NetBox version is not 4.5.x. See the warning above. |
+| `ModuleNotFoundError: No module named 'netbox_service_canvas'` | The image was not rebuilt, or the package line is missing from `plugin_requirements.txt`. |
+| 403 when saving | The user lacks a permission. The editor names the missing one. See [Permissions](#permissions). |
 
 ---
 
-## 🚀 How it works
+## How it works
 
-1. **Plugins → Service Canvas → Canvases → Add**, give it a name (e.g. *Homelab*).
-2. Open the **Editor** tab.
-3. Drag your devices and VMs onto the canvas, then click **Add missing** to pull in their services.
-4. Drag from the dot on the right of a node to another node to create a **data flow**.
-5. Click a node or an edge to edit it. Use ⚡ **Impact analysis** to see what depends on it.
-6. Export the result as a **PDF (A4)** for your documentation folder. 🖨️
+1. Go to *Plugins → Service Canvas → Canvases → Add* and give the canvas a name, for example *Homelab*.
+2. Open the *Editor* tab.
+3. Drag devices and VMs from the sidebar onto the canvas, then click **Add missing** to pull in their services.
+4. Drag from the dot on the right of a node to another node to create a connection.
+5. Click a node or a connection to edit it. **Impact analysis** in the node panel shows what depends on the node.
+6. Export the canvas as PNG, SVG or an A4 PDF.
 
-**Design principle:** relationships are real NetBox data; the canvas only stores the layout. The same object can
-appear on many canvases, and if it is deleted in NetBox it disappears from every canvas. The plugin is compatible
-with [netbox-branching](https://github.com/netboxlabs/netbox-branching): all models are change-logged and there is
-no raw SQL.
+Relationships are stored as normal NetBox data, the canvas only stores the layout. The same object can appear on
+several canvases. If an object is deleted in NetBox, it disappears from every canvas.
 
 ---
 
-## 🔐 Permissions
+## Features
+
+- **Applications**: a new NetBox object for software made of one or more services, for example Grafana, with status,
+  version and URL.
+- **Connections** between services, devices, VMs and applications, with direction, protocol, port, a description of
+  the data and status. Each connection can have **hops**: intermediate stations such as a reverse proxy, VLAN or
+  tunnel.
+- **Canvas editor**: drag and drop from a searchable sidebar, groups, sticky notes, automatic layout, minimap and
+  autosave.
+- **Impact analysis**: shows what fails together with a host and what depends on it.
+- **Export** as PNG, SVG or a printable A4 PDF with title, date and legend.
+- **Integrated into NetBox**: lists, filters, CSV import, search, REST API, GraphQL and change log for all objects.
+  Device, VM, service and application pages get a *Connections* tab and a *Show on canvas* button.
+- **Follows NetBox**: permissions, light and dark theme, English or German depending on the NetBox language.
+- **Works offline**: no CDNs, no external requests. The frontend is bundled with the plugin.
+
+More details and screenshots are in the [wiki](https://github.com/Jasper-Claus/netbox-service-canvas/wiki).
+
+<table>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/impact.png" alt="Impact analysis: truenas fails, red and orange mark everything that breaks with it"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/new-service.png" alt="Create a service and its application in one dialog"></td>
+  </tr>
+  <tr>
+    <td align="center">Impact analysis: what breaks if <code>truenas</code> goes down?</td>
+    <td align="center">New service with an optional application, in one dialog</td>
+  </tr>
+</table>
+
+<sub>Screenshots show a demo homelab.</sub>
+
+### Service vs. Application (in one sentence each)
+
+- **Service** (NetBox core) = *where* something listens: one port on one host, for example `grafana · TCP 3000 · nas`.
+- **Application** (this plugin) = *what* it is: the software, optionally spanning several services and hosts, for
+  example `Grafana`.
+
+For a simple one-port app a service is enough. When you create a service in the editor, you can create or link the
+application in the same dialog.
+
+---
+
+## Permissions
 
 | Action | Required permission |
 |---|---|
 | View a canvas | `view` on *canvas* (objects and connections only as far as you may view them) |
 | Move, add, remove nodes | `change` on the canvas + `add/change/delete` on *canvas node* |
 | Groups / notes | additionally `add/change/delete` on *canvas group* / *canvas note* |
-| Create / edit / delete data flows | `add/change/delete` on *service connection* |
+| Create / edit / delete connections | `add/change/delete` on *service connection* |
 | Hops | `add/change/delete` on *connection hop* |
 | New service, "runs on", quick edit | `add` / `change` on *ipam › service* |
 | Applications | `add` / `change` on *application* |
 
----
-
-## 🔌 REST API & GraphQL
-
-Base URL: `/api/plugins/service-canvas/`
-
-| Endpoint | |
-|---|---|
-| `applications/`, `connections/`, `connection-hops/`, `canvases/`, `canvas-groups/`, `canvas-nodes/`, `canvas-notes/` | Standard NetBox CRUD, bulk, filters, brief mode |
-| `GET canvases/<id>/graph/` | Everything the editor needs in one request |
-| `GET canvases/<id>/missing/` | Related objects not yet on the canvas |
-| `GET/PUT canvases/<id>/layout/` | Read / atomically save the layout (diff only) |
-| `POST connections/<id>/reorder-hops/` | Reorder hops in one transaction |
-
-GraphQL: `service_canvas_application(_list)`, `service_canvas_connection(_list)`, `service_canvas_canvas(_list)`
-and more.
+Users without change permission see the canvas in view-only mode.
 
 ---
 
-## 🛠️ Development
+## More
 
-```bash
-# Frontend (React 18 + React Flow 12 + Vite), output goes to netbox_service_canvas/static/…/dist
-cd frontend && npm ci && npm test && npm run build
+- [Wiki](https://github.com/Jasper-Claus/netbox-service-canvas/wiki): getting started, editor guide, impact analysis,
+  export, FAQ
+- REST API under `/api/plugins/service-canvas/` and GraphQL: see
+  [API in the wiki](https://github.com/Jasper-Claus/netbox-service-canvas/wiki/API)
+- Bug reports, development setup and tests: [CONTRIBUTING.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/CONTRIBUTING.md)
+- Changes per version: [CHANGELOG.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/CHANGELOG.md)
 
-# Backend tests run inside a NetBox dev environment, see dev/README.md
-python manage.py test netbox_service_canvas
-```
+## Why this exists
 
-See [CONTRIBUTING.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/CONTRIBUTING.md) for details.
+NetBox documents my homelab down to every cable and IP, but it did not show which service runs on which host and who
+talks to whom. This plugin adds that service layer.
 
-## 🗺️ Roadmap ideas
+## Built with AI
 
-- [ ] Auto-fill groups from cluster / site / tag
-- [ ] Services drawn inside their host's container
-- [ ] Filters and search on the canvas, undo/redo
-- [ ] More UI languages (one dictionary file each, PRs welcome)
+The code, tests and documentation of this plugin were written by AI ([Claude](https://claude.ai) via Claude Code).
+I contributed the idea and requirements, tested it in my homelab and gave feedback. Issues and pull requests are
+welcome.
 
-Got an idea? [Open an issue](https://github.com/Jasper-Claus/netbox-service-canvas/issues/new/choose). ⭐ Stars
-are appreciated if you find this useful!
+## License
 
-## 📄 License
-
-[Apache-2.0](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/LICENSE). Not affiliated with NetBox Labs. NetBox is a trademark of NetBox Labs, Inc.
-
----
-
-<div align="center">
-
-Made with 💙 for the NetBox community: an idea from a homelabber, code by AI.
-
-`#NetBox` `#NetBoxPlugin` `#Homelab` `#SelfHosted` `#SourceOfTruth` `#IPAM` `#DCIM` `#NetDevOps`
-`#NetworkAutomation` `#InfrastructureDocumentation` `#ServiceMap` `#DependencyMapping` `#ImpactAnalysis`
-`#SysAdmin` `#DevOps` `#Django` `#React` `#ReactFlow` `#OpenSource` `#BuiltWithAI` `#ClaudeCode` `#AIAssisted`
-
-</div>
+[Apache-2.0](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/LICENSE). Not affiliated with NetBox
+Labs. NetBox is a trademark of NetBox Labs, Inc.
