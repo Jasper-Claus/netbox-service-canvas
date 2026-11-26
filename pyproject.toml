@@ -37,12 +37,17 @@ Changelog = "https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/CHA
 
 [tool.setuptools.packages.find]
 include = ["netbox_service_canvas*"]
+exclude = ["netbox_service_canvas.tests*"]
 
 [tool.setuptools.package-data]
 netbox_service_canvas = [
     "templates/**/*.html",
     "static/**/*",
 ]
+
+[tool.setuptools.exclude-package-data]
+# The tests need a NetBox test environment and are not useful in an installed package
+netbox_service_canvas = ["tests/*"]
 
 [tool.ruff]
 line-length = 120

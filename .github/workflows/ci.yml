@@ -44,3 +44,51 @@ jobs:
       - run: pip install ruff
       - run: ruff check netbox_service_canvas --select E,F
       - run: python -m compileall -q netbox_service_canvas
+
+  netbox:
+    name: Django tests (NetBox 4.5)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: netbox
+          POSTGRES_PASSWORD: netbox
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: plugin
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check out the newest NetBox 4.5 release
+        run: |
+          tag=$(git ls-remote --tags --refs https://github.com/netbox-community/netbox 'v4.5.*' | sed 's#.*/##' | sort -V | tail -1)
+          echo "Testing against NetBox $tag"
+          git clone --depth 1 --branch "$tag" https://github.com/netbox-community/netbox.git netbox
+      - name: Install NetBox and the plugin
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r netbox/requirements.txt
+          pip install -e plugin
+      - name: Configure NetBox for testing
+        run: |
+          cp netbox/netbox/netbox/configuration_testing.py netbox/netbox/netbox/configuration.py
+          echo "PLUGINS = ['netbox_service_canvas']" >> netbox/netbox/netbox/configuration.py
+      - name: Collect static files
+        run: python netbox/netbox/manage.py collectstatic --no-input
+      - name: Check for missing migrations
+        run: python netbox/netbox/manage.py makemigrations netbox_service_canvas --check --dry-run
+      - name: Run the plugin's tests
+        run: python netbox/netbox/manage.py test netbox_service_canvas --parallel
