@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { Api } from './api';
-import type { Perms } from './types';
+import type { EdgeStyle, Perms } from './types';
 
 export interface GroupUpdate {
   name?: string;
@@ -27,6 +27,10 @@ export interface EditorContextValue {
   deleteGroup: (nodeId: string) => void;
   updateNote: (nodeId: string, update: NoteUpdate) => void;
   deleteNote: (nodeId: string) => void;
+  /** Bend points and color of connection lines may be edited. */
+  edgesEditable: boolean;
+  /** Change the look of a connection line on this canvas (saved with the layout). */
+  setEdgeStyle: (flowId: number, update: Partial<EdgeStyle>) => void;
   /** Remove an object node from the canvas (the NetBox object stays). */
   removeNode: (key: string) => void;
   notify: (message: string, kind?: 'success' | 'danger' | 'info') => void;

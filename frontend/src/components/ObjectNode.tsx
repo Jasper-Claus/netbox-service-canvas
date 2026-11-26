@@ -68,7 +68,7 @@ function ObjectNodeComponent({ data, selected }: NodeProps<ObjectNodeType>) {
       {toolbar}
       <Handle type="target" position={Position.Left} isConnectable={connectable} />
       <div className="nsc-node-head">
-        <i className={`mdi ${NODE_ICONS[desc.type] ?? 'mdi-shape-outline'}`} />
+        <i className={`mdi ${desc.application?.icon || NODE_ICONS[desc.type] || 'mdi-shape-outline'}`} />
         <span className="nsc-node-name" title={desc.name}>{desc.name}</span>
         <span className="nsc-node-type">{NODE_TYPE_LABELS[desc.type]}</span>
       </div>

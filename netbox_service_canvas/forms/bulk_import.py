@@ -14,8 +14,10 @@ from utilities.forms.fields import (
 from virtualization.models import Cluster
 
 from ..choices import (
+    ApplicationIconChoices,
     ApplicationStatusChoices,
     ConnectionDirectionChoices,
+    ConnectionKindChoices,
     ConnectionProtocolChoices,
     ConnectionStatusChoices,
 )
@@ -62,16 +64,25 @@ class ServiceConnectionImportForm(PrimaryModelImportForm):
         required=False,
         help_text=_('active (default), planned or disabled'),
     )
+    kind = CSVChoiceField(
+        label=_('Kind'),
+        choices=ConnectionKindChoices,
+        required=False,
+        help_text=_('uses (default) or proxy'),
+    )
 
     class Meta:
         model = ServiceConnection
         fields = (
             'source_type', 'source_id', 'target_type', 'target_id', 'direction', 'protocol', 'port',
-            'data_description', 'status', 'description', 'owner', 'comments', 'tags',
+            'data_description', 'status', 'kind', 'description', 'owner', 'comments', 'tags',
         )
 
     def clean_direction(self):
         return self.cleaned_data.get('direction') or ConnectionDirectionChoices.DIRECTION_UNI
+
+    def clean_kind(self):
+        return self.cleaned_data.get('kind') or ConnectionKindChoices.KIND_USES
 
     def clean_status(self):
         return self.cleaned_data.get('status') or ConnectionStatusChoices.STATUS_ACTIVE
@@ -123,6 +134,12 @@ class ApplicationImportForm(PrimaryModelImportForm):
         required=False,
         help_text=_('active (default), planned, staging, decommissioning or offline'),
     )
+    icon = CSVChoiceField(
+        label=_('Icon'),
+        choices=ApplicationIconChoices,
+        required=False,
+        help_text=_('Icon name, e.g. mdi-database'),
+    )
     services = CSVModelMultipleChoiceField(
         label=_('Services (IDs)'),
         queryset=Service.objects.all(),
@@ -133,7 +150,9 @@ class ApplicationImportForm(PrimaryModelImportForm):
 
     class Meta:
         model = Application
-        fields = ('name', 'status', 'version', 'web_url', 'services', 'description', 'owner', 'comments', 'tags')
+        fields = (
+            'name', 'status', 'version', 'icon', 'web_url', 'services', 'description', 'owner', 'comments', 'tags',
+        )
 
     def clean_status(self):
         return self.cleaned_data.get('status') or ApplicationStatusChoices.STATUS_ACTIVE

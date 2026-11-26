@@ -68,7 +68,8 @@ class ServiceConnectionTable(PrimaryModelTable):
         model = ServiceConnection
         fields = (
             'pk', 'id', 'source_type', 'source', 'direction', 'target_type', 'target', 'protocol', 'port',
-            'data_description', 'status', 'hop_count', 'description', 'comments', 'tags', 'created', 'last_updated',
+            'data_description', 'status', 'kind', 'hop_count', 'description', 'comments', 'tags', 'created',
+            'last_updated',
         )
         default_columns = (
             'pk', 'id', 'source', 'direction', 'target', 'protocol', 'port', 'data_description', 'status',
@@ -176,7 +177,7 @@ class ApplicationTable(PrimaryModelTable):
     class Meta(PrimaryModelTable.Meta):
         model = Application
         fields = (
-            'pk', 'id', 'name', 'status', 'version', 'web_url', 'services', 'service_count', 'description', 'comments',
-            'tags', 'created', 'last_updated',
+            'pk', 'id', 'name', 'status', 'version', 'icon', 'web_url', 'services', 'service_count', 'description',
+            'comments', 'tags', 'created', 'last_updated',
         )
         default_columns = ('pk', 'name', 'status', 'version', 'web_url', 'services', 'description')

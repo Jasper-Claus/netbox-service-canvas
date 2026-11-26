@@ -19,6 +19,7 @@ from virtualization.api.serializers import ClusterSerializer
 from ..choices import (
     ApplicationStatusChoices,
     ConnectionDirectionChoices,
+    ConnectionKindChoices,
     ConnectionProtocolChoices,
     ConnectionStatusChoices,
 )
@@ -51,10 +52,10 @@ class ApplicationSerializer(PrimaryModelSerializer):
     class Meta:
         model = Application
         fields = (
-            'id', 'url', 'display_url', 'display', 'name', 'status', 'version', 'web_url', 'services', 'description',
-            'owner', 'comments', 'tags', 'custom_fields', 'created', 'last_updated',
+            'id', 'url', 'display_url', 'display', 'name', 'status', 'version', 'icon', 'web_url', 'services',
+            'description', 'owner', 'comments', 'tags', 'custom_fields', 'created', 'last_updated',
         )
-        brief_fields = ('id', 'url', 'display', 'name', 'status', 'version', 'description')
+        brief_fields = ('id', 'url', 'display', 'name', 'status', 'version', 'icon', 'description')
 
 
 class ServiceConnectionSerializer(PrimaryModelSerializer):
@@ -69,13 +70,14 @@ class ServiceConnectionSerializer(PrimaryModelSerializer):
     direction = ChoiceField(choices=ConnectionDirectionChoices, required=False)
     protocol = ChoiceField(choices=ConnectionProtocolChoices)
     status = ChoiceField(choices=ConnectionStatusChoices, required=False)
+    kind = ChoiceField(choices=ConnectionKindChoices, required=False)
     hop_count = serializers.IntegerField(read_only=True, required=False)
 
     class Meta:
         model = ServiceConnection
         fields = (
             'id', 'url', 'display_url', 'display', 'source_type', 'source_id', 'source', 'target_type', 'target_id',
-            'target', 'direction', 'protocol', 'port', 'data_description', 'status', 'hop_count', 'description',
+            'target', 'direction', 'protocol', 'port', 'data_description', 'status', 'kind', 'hop_count', 'description',
             'owner', 'comments', 'tags', 'custom_fields', 'created', 'last_updated',
         )
         brief_fields = ('id', 'url', 'display', 'direction', 'protocol', 'port', 'status', 'description')
@@ -212,6 +214,18 @@ class LayoutNoteSerializer(serializers.Serializer):
     height = serializers.FloatField(min_value=0)
 
 
+class LayoutPointSerializer(serializers.Serializer):
+    x = serializers.FloatField()
+    y = serializers.FloatField()
+
+
+class LayoutEdgeStyleSerializer(serializers.Serializer):
+    # Bend points of the line in canvas coordinates; empty = automatic curve
+    points = LayoutPointSerializer(many=True, required=False, default=list, max_length=50)
+    # Line color; empty = color of the connection status
+    color = serializers.RegexField(r'^([0-9a-f]{6})?$', required=False, allow_blank=True, default='')
+
+
 class CanvasLayoutSerializer(serializers.Serializer):
     """
     Payload of PUT /api/plugins/service-canvas/canvases/<id>/layout/
@@ -222,6 +236,13 @@ class CanvasLayoutSerializer(serializers.Serializer):
     deleted_groups = serializers.ListField(child=serializers.IntegerField(), required=False, default=list)
     notes = LayoutNoteSerializer(many=True, required=False, default=list)
     deleted_notes = serializers.ListField(child=serializers.IntegerField(), required=False, default=list)
+    # Complete map {"<connection id>": style}; omitted = leave the stored styles untouched
+    edge_styles = serializers.DictField(child=LayoutEdgeStyleSerializer(), required=False)
+
+    def validate_edge_styles(self, value):
+        if len(value) > 5000 or any(not str(key).isdigit() for key in value):
+            raise serializers.ValidationError(_('Keys must be connection IDs.'))
+        return value
 
 
 class HopOrderSerializer(serializers.Serializer):

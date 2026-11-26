@@ -36,6 +36,7 @@ class ServiceConnectionFilter(PrimaryModelFilter):
     )
     data_description: StrFilterLookup[str] | None = strawberry_django.filter_field()
     status: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    kind: StrFilterLookup[str] | None = strawberry_django.filter_field()
 
 
 @strawberry_django.filter_type(models.ConnectionHop, lookups=True)
@@ -78,6 +79,7 @@ class ApplicationFilter(PrimaryModelFilter):
     name: StrFilterLookup[str] | None = strawberry_django.filter_field()
     status: StrFilterLookup[str] | None = strawberry_django.filter_field()
     version: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    icon: StrFilterLookup[str] | None = strawberry_django.filter_field()
     web_url: StrFilterLookup[str] | None = strawberry_django.filter_field()
 
 

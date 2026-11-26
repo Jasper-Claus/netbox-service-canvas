@@ -11,6 +11,7 @@ class ServiceConnectionPanel(panels.ObjectAttributesPanel):
     port = attrs.TextAttr('port', label=_('Port'))
     data_description = attrs.TextAttr('data_description', label=_('Data'))
     status = attrs.ChoiceAttr('status', label=_('Status'))
+    kind = attrs.ChoiceAttr('kind', label=_('Kind'))
     description = attrs.TextAttr('description', label=_('Description'))
 
 

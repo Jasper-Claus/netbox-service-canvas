@@ -4,6 +4,8 @@
  */
 import { MarkerType, type Edge, type Node } from '@xyflow/react';
 import type {
+  EdgeStyle,
+  EdgeStyles,
   Flow,
   GraphEdges,
   GraphResponse,
@@ -49,7 +51,7 @@ export type NoteNodeData = {
 };
 
 /** Impact analysis highlight of a node: the analysed object, directly or indirectly affected, or unaffected. */
-export type ImpactRole = 'root' | 'direct' | 'indirect' | 'none';
+export type ImpactRole = 'root' | 'direct' | 'indirect' | 'unreachable' | 'none';
 
 export type ObjectNode = Node<ObjectNodeData & { impact?: ImpactRole }, 'object'>;
 export type GroupNode = Node<GroupNodeData, 'group'>;
@@ -57,7 +59,7 @@ export type NoteNode = Node<NoteNodeData, 'note'>;
 export type CanvasNode = ObjectNode | GroupNode | NoteNode;
 
 export type FlowEdgeData =
-  | { kind: 'flow'; flow: Flow }
+  | { kind: 'flow'; flow: Flow; points: EdgeStyle['points']; color?: string }
   | { kind: 'runs_on'; runsOn: RunsOn }
   | { kind: 'part_of'; partOf: PartOf };
 export type CanvasEdge = Edge<FlowEdgeData>;
@@ -261,16 +263,16 @@ export function flowLabel(flow: Flow): string {
   return label;
 }
 
-export function flowEdge(flow: Flow): CanvasEdge {
-  const color = STATUS_COLORS[flow.status] ?? STATUS_COLORS.active;
+export function flowEdge(flow: Flow, style?: EdgeStyle): CanvasEdge {
+  const color = style?.color ? `#${style.color}` : (STATUS_COLORS[flow.status] ?? STATUS_COLORS.active);
   const marker = { type: MarkerType.ArrowClosed, color, width: 18, height: 18 };
   return {
     id: `flow:${flow.id}`,
     source: flow.source,
     target: flow.target,
-    type: 'default',
+    type: 'flow',
     label: flowLabel(flow),
-    className: `nsc-edge-flow nsc-edge-${flow.status}`,
+    className: `nsc-edge-flow nsc-edge-${flow.status}${flow.kind === 'proxy' ? ' nsc-edge-proxy' : ''}`,
     style: {
       stroke: color,
       strokeWidth: 2,
@@ -280,7 +282,7 @@ export function flowEdge(flow: Flow): CanvasEdge {
     markerStart: flow.direction === 'bi' ? marker : undefined,
     animated: false,
     deletable: false,
-    data: { kind: 'flow', flow },
+    data: { kind: 'flow', flow, points: style?.points ?? [], color: style?.color },
   };
 }
 
@@ -318,6 +320,7 @@ export function buildEdges(
   edges: GraphEdges,
   present: Set<string>,
   options: { showRunsOn: boolean } = { showRunsOn: true },
+  styles: EdgeStyles = {},
 ): CanvasEdge[] {
   const result: CanvasEdge[] = [];
   if (options.showRunsOn) {
@@ -329,7 +332,7 @@ export function buildEdges(
     }
   }
   for (const f of edges.flows) {
-    if (present.has(f.source) && present.has(f.target)) result.push(flowEdge(f));
+    if (present.has(f.source) && present.has(f.target)) result.push(flowEdge(f, styles[String(f.id)]));
   }
   return result;
 }
@@ -549,9 +552,11 @@ export interface Impact {
   root: string;
   /** Objects that fail together with the root: services on a failed host, applications of failed services. */
   direct: Set<string>;
-  /** Objects that depend on a failed object through a data flow (source -> failed target), transitively. */
+  /** Objects that depend on a failed object through a connection (source -> failed target), transitively. */
   indirect: Set<string>;
-  /** Data flows whose target (or, for bidirectional flows, either end) has failed. */
+  /** Objects that keep running but can no longer be reached: targets behind a failed proxy, and their applications. */
+  unreachable: Set<string>;
+  /** Connections that break: failed target (or either end if bidirectional), failed proxy or failed hop. */
   flows: Set<number>;
 }
 
@@ -559,7 +564,11 @@ export interface Impact {
  * "What breaks if <root> fails?" – evaluated on the edges known to the canvas.
  *   1. Structural failure: device -> VMs pinned to it -> services running on them -> applications made of those
  *      services (everything connected by "runs on" / "part of" edges).
- *   2. Dependents: whoever sends data to a failed object loses that dependency (and so on, transitively).
+ *   2. Dependents: whoever uses a failed object loses that dependency (and so on, transitively). A connection also
+ *      breaks when an object it passes through (a hop) fails.
+ *   3. Proxies: for a connection of kind "proxy" the target is reached through the source. If the source (or a hop)
+ *      fails, the target and the applications it belongs to become unreachable. Targets behind an unreachable proxy
+ *      are unreachable as well.
  */
 export function computeImpact(root: string, edges: GraphEdges): Impact {
   const direct = new Set<string>([root]);
@@ -582,27 +591,45 @@ export function computeImpact(root: string, edges: GraphEdges): Impact {
 
   const failed = new Set(direct);
   const indirect = new Set<string>();
+  const unreachable = new Set<string>();
   const flows = new Set<number>();
+  const markUnreachable = (key: string) => {
+    if (failed.has(key) || unreachable.has(key)) return false;
+    unreachable.add(key);
+    return true;
+  };
   changed = true;
   while (changed) {
     changed = false;
     for (const f of edges.flows) {
       if (f.status === 'disabled') continue;
-      const hits: Array<[string, string]> = [[f.target, f.source]];
-      if (f.direction === 'bi') hits.push([f.source, f.target]);
-      for (const [failedEnd, dependent] of hits) {
-        if (!failed.has(failedEnd)) continue;
+      const hopFailed = (f.hop_keys ?? []).some((k) => failed.has(k));
+      if (f.kind === 'proxy') {
+        if (failed.has(f.source) || unreachable.has(f.source) || hopFailed) {
+          flows.add(f.id);
+          if (markUnreachable(f.target)) changed = true;
+        }
+        continue;
+      }
+      const dependents: string[] = [];
+      if (failed.has(f.target) || hopFailed) dependents.push(f.source);
+      if (f.direction === 'bi' && (failed.has(f.source) || hopFailed)) dependents.push(f.target);
+      for (const dependent of dependents) {
         flows.add(f.id);
         if (!failed.has(dependent)) {
           failed.add(dependent);
           indirect.add(dependent);
+          unreachable.delete(dependent);
           changed = true;
         }
       }
     }
+    for (const p of edges.part_of ?? []) {
+      if (unreachable.has(p.source) && markUnreachable(p.target)) changed = true;
+    }
   }
   direct.delete(root);
-  return { root, direct, indirect, flows };
+  return { root, direct, indirect, unreachable, flows };
 }
 
 export function impactRole(impact: Impact | null, key: string): ImpactRole | undefined {
@@ -610,5 +637,6 @@ export function impactRole(impact: Impact | null, key: string): ImpactRole | und
   if (key === impact.root) return 'root';
   if (impact.direct.has(key)) return 'direct';
   if (impact.indirect.has(key)) return 'indirect';
+  if (impact.unreachable.has(key)) return 'unreachable';
   return 'none';
 }

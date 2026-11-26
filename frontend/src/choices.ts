@@ -16,6 +16,52 @@ export const DIRECTIONS: Array<[string, string]> = [
   ['bi', 'Bidirectional'],
 ];
 
+/** How a connection counts in the impact analysis (ServiceConnection.kind). */
+export const KINDS: Array<[string, string]> = [
+  ['uses', 'Uses (source needs target)'],
+  ['proxy', 'Proxy (target is reached through source)'],
+];
+
+/** Icons for applications (ApplicationIconChoices); the first one is the default. */
+export const APPLICATION_ICONS: Array<[string, string]> = [
+  ['mdi-apps', 'Application'],
+  ['mdi-web', 'Web app'],
+  ['mdi-database', 'Database'],
+  ['mdi-chart-line', 'Monitoring'],
+  ['mdi-file-document-outline', 'Logs'],
+  ['mdi-swap-horizontal', 'Reverse proxy'],
+  ['mdi-dns', 'DNS'],
+  ['mdi-shield-lock-outline', 'Security'],
+  ['mdi-account-key-outline', 'Authentication'],
+  ['mdi-harddisk', 'Storage'],
+  ['mdi-backup-restore', 'Backup'],
+  ['mdi-email-outline', 'Mail'],
+  ['mdi-message-text-outline', 'Chat'],
+  ['mdi-image-multiple-outline', 'Photos'],
+  ['mdi-filmstrip', 'Media'],
+  ['mdi-music', 'Music'],
+  ['mdi-file-document-multiple-outline', 'Documents'],
+  ['mdi-home-automation', 'Home automation'],
+  ['mdi-docker', 'Containers'],
+  ['mdi-source-branch', 'Code'],
+  ['mdi-download', 'Downloads'],
+  ['mdi-vpn', 'VPN'],
+  ['mdi-printer', 'Printing'],
+  ['mdi-cog-outline', 'Tool'],
+];
+
+/** Colors offered for connection lines (rrggbb). */
+export const LINE_COLORS: Array<[string, string]> = [
+  ['206bc4', 'Blue'],
+  ['4299e1', 'Light blue'],
+  ['ae3ec9', 'Purple'],
+  ['d63939', 'Red'],
+  ['f76707', 'Orange'],
+  ['f59f00', 'Yellow'],
+  ['2fb344', 'Green'],
+  ['616876', 'Gray'],
+];
+
 export const STATUSES: Array<[string, string]> = [
   ['active', 'Active'],
   ['planned', 'Planned'],

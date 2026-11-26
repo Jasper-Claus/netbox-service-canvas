@@ -11,8 +11,10 @@ from utilities.filtersets import register_filterset
 from virtualization.models import Cluster, VirtualMachine
 
 from .choices import (
+    ApplicationIconChoices,
     ApplicationStatusChoices,
     ConnectionDirectionChoices,
+    ConnectionKindChoices,
     ConnectionProtocolChoices,
     ConnectionStatusChoices,
 )
@@ -51,6 +53,7 @@ class ServiceConnectionFilterSet(PrimaryModelFilterSet):
     direction = django_filters.MultipleChoiceFilter(choices=ConnectionDirectionChoices)
     protocol = django_filters.MultipleChoiceFilter(choices=ConnectionProtocolChoices)
     status = django_filters.MultipleChoiceFilter(choices=ConnectionStatusChoices)
+    kind = django_filters.MultipleChoiceFilter(choices=ConnectionKindChoices)
     service_id = MultiValueNumberFilter(
         method='filter_service',
         label=_('Service (ID), as source or target'),
@@ -206,6 +209,7 @@ class CanvasNodeFilterSet(ChangeLoggedModelFilterSet):
 @register_filterset
 class ApplicationFilterSet(PrimaryModelFilterSet):
     status = django_filters.MultipleChoiceFilter(choices=ApplicationStatusChoices)
+    icon = django_filters.MultipleChoiceFilter(choices=ApplicationIconChoices)
     service_id = django_filters.ModelMultipleChoiceFilter(
         field_name='services',
         queryset=Service.objects.all(),

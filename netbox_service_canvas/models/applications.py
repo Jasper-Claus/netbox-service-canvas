@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.models import PrimaryModel
 
-from ..choices import ApplicationStatusChoices
+from ..choices import ApplicationIconChoices, ApplicationStatusChoices
 
 __all__ = (
     'Application',
@@ -39,6 +39,13 @@ class Application(PrimaryModel):
         blank=True,
         help_text=_('Where users reach the application, e.g. https://grafana.example.com'),
     )
+    icon = models.CharField(
+        verbose_name=_('icon'),
+        max_length=50,
+        choices=ApplicationIconChoices,
+        blank=True,
+        help_text=_('Icon shown on the canvas'),
+    )
     services = models.ManyToManyField(
         to='ipam.Service',
         related_name='service_canvas_applications',
@@ -46,7 +53,7 @@ class Application(PrimaryModel):
         verbose_name=_('services'),
     )
 
-    clone_fields = ('status', 'version')
+    clone_fields = ('status', 'version', 'icon')
 
     class Meta:
         ordering = ('name',)

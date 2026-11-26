@@ -105,6 +105,7 @@ export interface ApplicationData {
   name?: string;
   status?: string;
   version?: string;
+  icon?: string;
   web_url?: string;
   description?: string;
   services?: number[];

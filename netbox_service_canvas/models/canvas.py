@@ -47,6 +47,14 @@ class Canvas(PrimaryModel):
         help_text=_('Optional: limit the sidebar search and "add missing" to this cluster'),
     )
 
+    # Per-canvas look of connection lines: {"<connection id>": {"points": [{"x": .., "y": ..}], "color": "rrggbb"}}.
+    # Pure layout data, written by the editor's layout endpoint.
+    edge_styles = models.JSONField(
+        verbose_name=_('connection styles'),
+        default=dict,
+        blank=True,
+    )
+
     clone_fields = ('site', 'cluster')
 
     class Meta:

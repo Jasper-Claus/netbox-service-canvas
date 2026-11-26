@@ -47,7 +47,7 @@ status of their host, because NetBox services have no status of their own.
 Click a node to open the **node panel**:
 
 - details and the node's connections on this canvas,
-- **Quick edit** for services and applications,
+- **Quick edit** for services and applications (applications: also the **icon**),
 - **Open in NetBox** and **Edit all fields** (the NetBox form; afterwards you return to the editor),
 - **Impact analysis** (see [[Impact Analysis]]),
 - **Remove from this canvas**.
@@ -64,7 +64,7 @@ Lines between nodes come in three kinds:
 | Grey dashed, thin | Runs on: service on its host, VM on its device | The service's host / the VM's *Device* field |
 | Dotted purple | Service belongs to application | The application's services |
 
-Arrows show the direction; the label shows protocol, port and data.
+Arrows show the direction; the label shows protocol, port and data. Proxy connections are drawn a bit thicker.
 
 **Drawing a line:** drag from the dot on the right of a node onto another node. A dialog asks what you mean:
 
@@ -74,7 +74,13 @@ Arrows show the direction; the label shows protocol, port and data.
 
 **Click a connection** to edit protocol, port, data, status and direction, to delete it in NetBox, or to add
 **hops**: intermediate stations such as a reverse proxy, VLAN, VRF, tunnel, prefix, IP address or interface. Drag
-hops to change their order.
+hops to change their order. In the same panel you set the **kind** for the impact analysis (*Uses* or *Proxy*, see
+[[Impact Analysis]]).
+
+**Bending and colouring a line** (edit mode): click the line. Small dots appear in the middle of each segment; drag
+one to add a bend point. Drag a point to move it, double-click it to remove it. Pick a colour under *Line on this
+canvas*; *Auto* uses the status colour again, *Reset shape* removes all bend points. Shape and colour belong to this
+canvas only. *Auto layout* straightens all lines but keeps their colours.
 
 ## Groups
 

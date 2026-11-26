@@ -21,6 +21,7 @@ import { Api, ApiError } from './api';
 import { NewApplicationModal } from './components/ApplicationModal';
 import { ConnectDialog } from './components/ConnectDialog';
 import { EdgePanel } from './components/EdgePanel';
+import { FlowEdge } from './components/FlowEdge';
 import { GroupNode } from './components/GroupNode';
 import { NewServiceModal } from './components/NewServiceModal';
 import { NodePanel } from './components/NodePanel';
@@ -63,11 +64,15 @@ import {
   type ObjectNode as ObjectNodeType,
 } from './graph';
 import { autoLayout } from './layout';
-import type { EditorConfig, GraphResponse, ObjectDescriptor, Snapshot } from './types';
+import type { EdgeStyle, EdgeStyles, EditorConfig, GraphResponse, LayoutPayload, ObjectDescriptor, Snapshot } from './types';
 import { downloadDataUrl, slugify } from './util';
 import { locale, t } from './i18n';
 
 const nodeTypes = { object: ObjectNode, group: GroupNode, note: NoteNode };
+const edgeTypes = { flow: FlowEdge };
+const EMPTY_PAYLOAD: LayoutPayload = {
+  groups: [], nodes: [], notes: [], deleted_nodes: [], deleted_groups: [], deleted_notes: [],
+};
 const AUTOSAVE_DELAY = 800;
 
 interface Toast {
@@ -152,6 +157,10 @@ function Editor({ config }: { config: EditorConfig }) {
   const savingRef = useRef(false);
   const pendingSaveRef = useRef(false);
   const [saveState, setSaveState] = useState<SaveState>('saved');
+  const [edgeStyles, setEdgeStyles] = useState<EdgeStyles>({});
+  const edgeStylesRef = useRef<EdgeStyles>({});
+  edgeStylesRef.current = edgeStyles;
+  const savedStylesRef = useRef('{}');
 
   const [selectedFlowId, setSelectedFlowId] = useState<number | null>(null);
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
@@ -206,6 +215,8 @@ function Editor({ config }: { config: EditorConfig }) {
         : n));
       setNodes(withFocus);
       savedRef.current = snapshotFromNodes(withFocus, grid);
+      setEdgeStyles(g.edge_styles ?? {});
+      savedStylesRef.current = JSON.stringify(g.edge_styles ?? {});
       setGraphEdges(g.edges);
       setSaveState('saved');
       setLoadError(null);
@@ -243,7 +254,10 @@ function Editor({ config }: { config: EditorConfig }) {
       return;
     }
     const current = snapshotFromNodes(nodesRef.current, grid);
-    const payload = diffLayout(savedRef.current, current);
+    const styles = edgeStylesRef.current;
+    const stylesJson = JSON.stringify(styles);
+    let payload = diffLayout(savedRef.current, current);
+    if (stylesJson !== savedStylesRef.current) payload = { ...(payload ?? EMPTY_PAYLOAD), edge_styles: styles };
     if (!payload) {
       setSaveState('saved');
       return;
@@ -253,6 +267,7 @@ function Editor({ config }: { config: EditorConfig }) {
     try {
       const result = await api.saveLayout(payload);
       savedRef.current = applySaveResult(current, result.created_groups, result.created_nodes, result.created_notes ?? {});
+      if (payload.edge_styles) savedStylesRef.current = stylesJson;
       // Store the new database IDs on the nodes
       setNodes((ns) => ns.map((n) => {
         if (isObjectNode(n) && n.data.dbId === null && result.created_nodes[n.data.key]) {
@@ -284,7 +299,8 @@ function Editor({ config }: { config: EditorConfig }) {
     if (loading || !canSaveLayout) return;
     if (nodes.some((n) => n.dragging || n.resizing)) return;
     const payload = diffLayout(savedRef.current, snapshotFromNodes(nodes, grid));
-    if (!payload) {
+    const stylesChanged = JSON.stringify(edgeStyles) !== savedStylesRef.current;
+    if (!payload && !stylesChanged) {
       if (!savingRef.current) setSaveState((s) => (s === 'error' ? s : 'saved'));
       return;
     }
@@ -292,7 +308,18 @@ function Editor({ config }: { config: EditorConfig }) {
     if (!autosave || readOnly) return;
     const timer = window.setTimeout(() => void save(), AUTOSAVE_DELAY);
     return () => window.clearTimeout(timer);
-  }, [nodes, autosave, readOnly, loading, canSaveLayout, grid, save]);
+  }, [nodes, edgeStyles, autosave, readOnly, loading, canSaveLayout, grid, save]);
+
+  const setEdgeStyle = useCallback((flowId: number, update: Partial<EdgeStyle>) => {
+    setEdgeStyles((styles) => {
+      const key = String(flowId);
+      const next: EdgeStyle = { ...styles[key], ...update, points: update.points ?? styles[key]?.points ?? [] };
+      const copy = { ...styles };
+      if (next.points.length || next.color) copy[key] = next;
+      else delete copy[key];
+      return copy;
+    });
+  }, []);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -320,7 +347,7 @@ function Editor({ config }: { config: EditorConfig }) {
   );
 
   const edges = useMemo(() => {
-    const list = buildEdges(graphEdges, placedKeys, { showRunsOn });
+    const list = buildEdges(graphEdges, placedKeys, { showRunsOn }, edgeStyles);
     const failed = impact ? new Set([impact.root, ...impact.direct]) : null;
     return list.map((e) => {
       let edge = e;
@@ -335,7 +362,7 @@ function Editor({ config }: { config: EditorConfig }) {
       }
       return edge;
     });
-  }, [graphEdges, placedKeys, showRunsOn, selectedFlowId, impact]);
+  }, [graphEdges, placedKeys, showRunsOn, selectedFlowId, impact, edgeStyles]);
 
   /** Nodes as rendered: impact highlight and per-type draggability are derived, not stored. */
   const displayNodes = useMemo(() => {
@@ -573,6 +600,10 @@ function Editor({ config }: { config: EditorConfig }) {
     try {
       const laidOut = await autoLayout(nodesRef.current, edges, grid);
       setNodes(laidOut);
+      // Hand-drawn bends no longer fit the new positions; colors are kept
+      setEdgeStyles((styles) => Object.fromEntries(Object.entries(styles)
+        .filter(([, s]) => s.color)
+        .map(([k, s]) => [k, { points: [], color: s.color }])));
       window.setTimeout(() => fitView({ duration: 400, maxZoom: 1.2 }), 50);
     } catch (e) {
       notify(t('Auto layout failed: {error}', { error: (e as Error).message }), 'danger');
@@ -802,8 +833,9 @@ function Editor({ config }: { config: EditorConfig }) {
 
   const contextValue: EditorContextValue = useMemo(() => ({
     api, perms, readOnly, grid, netboxBase, updateGroup, deleteGroup, updateNote, deleteNote, removeNode: removeFromCanvas,
-    notify,
-  }), [api, perms, readOnly, grid, netboxBase, updateGroup, deleteGroup, updateNote, deleteNote, removeFromCanvas, notify]);
+    notify, edgesEditable: layoutEditable && canSaveLayout, setEdgeStyle,
+  }), [api, perms, readOnly, grid, netboxBase, updateGroup, deleteGroup, updateNote, deleteNote, removeFromCanvas, notify,
+    layoutEditable, canSaveLayout, setEdgeStyle]);
 
   if (loadError) {
     return (
@@ -878,6 +910,7 @@ function Editor({ config }: { config: EditorConfig }) {
               nodes={displayNodes}
               edges={edges}
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               onNodesChange={onNodesChange}
               onNodeDragStop={onNodeDragStop}
               onBeforeDelete={onBeforeDelete}
@@ -921,6 +954,8 @@ function Editor({ config }: { config: EditorConfig }) {
             <EdgePanel
               key={selectedFlow.id}
               flow={selectedFlow}
+              edgeStyle={edgeStyles[String(selectedFlow.id)]}
+              onEdgeStyle={(update) => setEdgeStyle(selectedFlow.id, update)}
               source={descriptorFor(selectedFlow.source)}
               target={descriptorFor(selectedFlow.target)}
               onClose={() => setSelectedFlowId(null)}
@@ -957,6 +992,7 @@ function Editor({ config }: { config: EditorConfig }) {
             <>
               <span><span className="nsc-legend-dot" style={{ background: '#d63939' }} /> {t('fails with it')}</span>
               <span><span className="nsc-legend-dot" style={{ background: '#f76707' }} /> {t('affected (depends on it)')}</span>
+              <span><span className="nsc-legend-dot" style={{ background: '#f59f00' }} /> {t('unreachable (behind a failed proxy)')}</span>
             </>
           )}
           <span className="ms-auto">{t('Tip: click a node or connection to edit it')}</span>
