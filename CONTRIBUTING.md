@@ -73,7 +73,12 @@ Lint:
 ruff check netbox_service_canvas --select E,F
 ```
 
-CI runs the frontend tests and build, the lint and the Django tests against the newest NetBox 4.5 release.
+CI runs the frontend tests and build, the lint and the Django tests against NetBox v4.5.7 and the newest 4.5
+release.
+
+Known issue: 6 of the 278 Django tests currently fail on both NetBox versions (connection hops: bulk create, GraphQL,
+reorder; layout permission check). Until they are fixed, the Django test job is marked `continue-on-error` and does
+not turn the CI badge red. Fixes are welcome.
 
 ## Pull requests
 

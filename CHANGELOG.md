@@ -19,7 +19,8 @@ All notable changes to this project are documented here. The format follows
   upgrades, setup for netbox-docker without plugins, plain install, update, uninstall, troubleshooting). README
   restructured; API details, editor guide and impact analysis moved to the wiki.
 - The wheel no longer contains the test suite.
-- CI also runs the Django tests against the newest NetBox 4.5 release.
+- CI also runs the Django tests against NetBox v4.5.7 and the newest 4.5 release (non-blocking for now, see
+  CONTRIBUTING.md).
 
 ## [0.2.0] – 2026-11-25
 
