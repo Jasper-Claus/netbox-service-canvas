@@ -193,7 +193,7 @@ export const DE: Record<string, string> = {
   "Line on this canvas": "Linie auf dieser Canvas",
   "Line color": "Linienfarbe",
   "Color of the status": "Farbe des Status",
-  "Drag the dots on the selected line to bend it.": "Punkte auf der ausgewählten Linie ziehen, um sie zu biegen.",
+  "Drag the + dots on the selected line to bend it.": "Die +-Punkte auf der ausgewählten Linie ziehen, um sie zu biegen.",
   "Reset shape": "Form zurücksetzen",
   "If one of them fails, the connection breaks (impact analysis).": "Fällt eine davon aus, ist die Verbindung unterbrochen (Impact-Analyse).",
   "Drag to bend the line": "Ziehen, um die Linie zu biegen",

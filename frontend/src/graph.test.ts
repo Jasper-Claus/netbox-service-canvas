@@ -19,7 +19,7 @@ import {
   type CanvasNode,
 } from './graph';
 import { runsOnPair } from './components/ConnectDialog';
-import { halfway, smoothPath } from './components/FlowEdge';
+import { addHandles, bezierPoint, halfway, smoothPath } from './components/FlowEdge';
 import type { Flow, GraphResponse, ObjectDescriptor } from './types';
 import { parsePorts, slugify } from './util';
 
@@ -130,6 +130,24 @@ describe('buildNodes / buildEdges', () => {
     expect(path.endsWith('100,0')).toBe(true);
     expect(halfway([{ x: 0, y: 0 }, { x: 100, y: 0 }])).toEqual({ x: 50, y: 0 });
     expect(halfway([{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 30 }])).toEqual({ x: 10, y: 10 });
+  });
+
+  it('places the add handles away from the label', () => {
+    const bezier = 'M0,0 C50,0 50,100 100,100';
+    expect(bezierPoint(bezier, 0.5)).toEqual({ x: 50, y: 50 });
+    const ends = [{ x: 0, y: 0 }, { x: 100, y: 100 }];
+    // Straight-ish line without points: two handles on the curve, none on the label in the middle
+    const plain = addHandles(ends, [], bezier, { x: 50, y: 50 }, 40);
+    expect(plain.map((h) => h.index)).toEqual([0, 0]);
+    expect(plain[0].at).toEqual(bezierPoint(bezier, 0.25));
+    expect(plain[1].at).toEqual(bezierPoint(bezier, 0.75));
+    // With a point: one handle per segment, the one under the label moves aside
+    const all = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }];
+    const bent = addHandles(all, [{ x: 100, y: 0 }], bezier, { x: 50, y: 0 }, 40);
+    expect(bent).toEqual([
+      { index: 0, at: { x: 25, y: 0 } },
+      { index: 1, at: { x: 100, y: 50 } },
+    ]);
   });
 });
 

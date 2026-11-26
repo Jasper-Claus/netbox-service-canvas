@@ -958,29 +958,38 @@
   font-size: 0.75rem;
 }
 
-/* Bend points of a selected connection line */
+/* Bend points of a selected connection line (scaled against the zoom, so always the same size on screen) */
 .nsc-root .nsc-edge-handle {
   position: absolute;
-  width: 12px;
-  height: 12px;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--tblr-primary, #00857d);
-  border: 2px solid var(--nsc-card, #fff);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.4);
   cursor: move;
   pointer-events: all;
   z-index: 10;
 }
 .nsc-root .nsc-edge-handle-add {
-  width: 10px;
-  height: 10px;
-  background: var(--nsc-card, #fff);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
   border: 2px solid var(--tblr-primary, #00857d);
-  opacity: 0.75;
+  color: var(--tblr-primary, #00857d);
+  font-size: 14px;
+  line-height: 1;
   cursor: copy;
 }
 .nsc-root .nsc-edge-handle-add:hover {
-  opacity: 1;
+  background: var(--tblr-primary, #00857d);
+  color: #fff;
 }
 /* Proxy connections: slightly wider line so they stand out */
 .nsc-root .nsc-edge-proxy .react-flow__edge-path {

@@ -1,4 +1,4 @@
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow, type Edge, type EdgeProps } from '@xyflow/react';
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow, useStore, type Edge, type EdgeProps } from '@xyflow/react';
 import { memo, useCallback, type PointerEvent as ReactPointerEvent } from 'react';
 import { useEditor } from '../context';
 import type { FlowEdgeData } from '../graph';
@@ -40,6 +40,46 @@ export function halfway(points: Point[]): Point {
   return points[Math.floor(points.length / 2)];
 }
 
+/** Point at parameter t of a cubic Bézier path "M x,y C x,y x,y x,y" (as built by getBezierPath). */
+export function bezierPoint(path: string, t: number): Point | null {
+  const n = (path.match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/gi) ?? []).map(Number);
+  if (n.length < 8) return null;
+  const [x0, y0, x1, y1, x2, y2, x3, y3] = n;
+  const u = 1 - t;
+  const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+  return { x: a * x0 + b * x1 + c * x2 + d * x3, y: a * y0 + b * y1 + c * y2 + d * y3 };
+}
+
+/** Where a new bend point can be dragged out of the line. */
+export interface AddHandle {
+  /** Index at which the new point is inserted into the bend points. */
+  index: number;
+  at: Point;
+}
+
+/**
+ * Positions of the "add point" handles: on a line without bend points at a quarter and three quarters of the curve
+ * (the label sits in the middle), otherwise in the middle of each segment, moved aside if the label is there.
+ */
+export function addHandles(all: Point[], points: Point[], bezier: string, label: Point, minGap: number): AddHandle[] {
+  if (!points.length) {
+    return [0.25, 0.75].map((t) => ({
+      index: 0,
+      at: bezierPoint(bezier, t) ?? {
+        x: all[0].x + (all[1].x - all[0].x) * t,
+        y: all[0].y + (all[1].y - all[0].y) * t,
+      },
+    }));
+  }
+  return all.slice(1).map((p, i) => {
+    const prev = all[i];
+    let f = 0.5;
+    const mid = { x: (prev.x + p.x) / 2, y: (prev.y + p.y) / 2 };
+    if (Math.hypot(mid.x - label.x, mid.y - label.y) < minGap) f = 0.25;
+    return { index: i, at: { x: prev.x + (p.x - prev.x) * f, y: prev.y + (p.y - prev.y) * f } };
+  });
+}
+
 const round = (p: Point): Point => ({ x: Math.round(p.x / 5) * 5, y: Math.round(p.y / 5) * 5 });
 
 function FlowEdgeComponent(props: EdgeProps<FlowEdgeType>) {
@@ -49,18 +89,21 @@ function FlowEdgeComponent(props: EdgeProps<FlowEdgeType>) {
   } = props;
   const { edgesEditable, setEdgeStyle } = useEditor();
   const { screenToFlowPosition } = useReactFlow();
+  // Handles keep the same size on screen at every zoom level
+  const zoom = useStore((s) => s.transform[2]);
   const flowId = data?.flow.id;
   const points = data?.points ?? [];
 
   let path: string;
   let labelX: number;
   let labelY: number;
+  const [bezier, bezierX, bezierY] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
   if (points.length) {
     const all = [{ x: sourceX, y: sourceY }, ...points, { x: targetX, y: targetY }];
     path = smoothPath(all);
     ({ x: labelX, y: labelY } = halfway(all));
   } else {
-    [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
+    [path, labelX, labelY] = [bezier, bezierX, bezierY];
   }
 
   /** Drag the bend point at `index` (inserted first when `insert` is set) until the pointer is released. */
@@ -90,6 +133,9 @@ function FlowEdgeComponent(props: EdgeProps<FlowEdgeType>) {
 
   const all = [{ x: sourceX, y: sourceY }, ...points, { x: targetX, y: targetY }];
   const showHandles = selected && edgesEditable;
+  const scale = 1 / (zoom || 1);
+  const place = (p: Point) => ({ transform: `translate(${p.x}px, ${p.y}px) scale(${scale}) translate(-50%, -50%)` });
+  const adds = showHandles ? addHandles(all, points, bezier, { x: labelX, y: labelY }, 40 * scale) : [];
 
   return (
     <>
@@ -111,23 +157,22 @@ function FlowEdgeComponent(props: EdgeProps<FlowEdgeType>) {
       />
       {showHandles && (
         <EdgeLabelRenderer>
-          {all.slice(1).map((p, i) => {
-            const prev = all[i];
-            return (
-              <div
-                key={`add-${i}`}
-                className="nsc-edge-handle nsc-edge-handle-add nodrag nopan"
-                style={{ transform: `translate(-50%, -50%) translate(${(prev.x + p.x) / 2}px, ${(prev.y + p.y) / 2}px)` }}
-                title={t('Drag to bend the line')}
-                onPointerDown={(e) => startDrag(e, i, true)}
-              />
-            );
-          })}
+          {adds.map((h, i) => (
+            <div
+              key={`add-${i}`}
+              className="nsc-edge-handle nsc-edge-handle-add nodrag nopan"
+              style={place(h.at)}
+              title={t('Drag to bend the line')}
+              onPointerDown={(e) => startDrag(e, h.index, true)}
+            >
+              <i className="mdi mdi-plus" />
+            </div>
+          ))}
           {points.map((p, i) => (
             <div
               key={`pt-${i}`}
               className="nsc-edge-handle nodrag nopan"
-              style={{ transform: `translate(-50%, -50%) translate(${p.x}px, ${p.y}px)` }}
+              style={place(p)}
               title={t('Drag to move, double-click to remove')}
               onPointerDown={(e) => startDrag(e, i, false)}
               onDoubleClick={(e) => {

@@ -315,7 +315,7 @@ export function EdgePanel({ flow, edgeStyle, onEdgeStyle, source, target, onClos
         </div>
         {edgesEditable && (
           <div className="d-flex align-items-center gap-2 mb-3">
-            <span className="small text-muted flex-grow-1">{t('Drag the dots on the selected line to bend it.')}</span>
+            <span className="small text-muted flex-grow-1">{t('Drag the + dots on the selected line to bend it.')}</span>
             <button type="button" className="btn btn-sm btn-outline-secondary" disabled={!edgeStyle?.points.length} onClick={() => onEdgeStyle({ points: [] })}>
               <i className="mdi mdi-vector-line" /> {t('Reset shape')}
             </button>
