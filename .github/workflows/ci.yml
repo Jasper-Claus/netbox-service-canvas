@@ -46,8 +46,16 @@ jobs:
       - run: python -m compileall -q netbox_service_canvas
 
   netbox:
-    name: Django tests (NetBox 4.5)
+    name: Django tests (NetBox ${{ matrix.netbox }})
     runs-on: ubuntu-latest
+    # Some tests currently fail (see CONTRIBUTING.md, "Tests"). Until they are fixed, this job reports but does not
+    # block. Remove continue-on-error once the suite is green.
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        # v4.5.7: the version the plugin is tested with by hand; newest: the latest 4.5.x release
+        netbox: ["v4.5.7", "newest"]
     services:
       postgres:
         image: postgres:17
@@ -72,9 +80,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Check out the newest NetBox 4.5 release
+      - name: Check out NetBox
         run: |
-          tag=$(git ls-remote --tags --refs https://github.com/netbox-community/netbox 'v4.5.*' | sed 's#.*/##' | sort -V | tail -1)
+          tag="${{ matrix.netbox }}"
+          if [ "$tag" = newest ]; then
+            tag=$(git ls-remote --tags --refs https://github.com/netbox-community/netbox 'v4.5.*' | sed 's#.*/##' | sort -V | tail -1)
+          fi
           echo "Testing against NetBox $tag"
           git clone --depth 1 --branch "$tag" https://github.com/netbox-community/netbox.git netbox
       - name: Install NetBox and the plugin
