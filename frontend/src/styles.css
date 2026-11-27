@@ -1041,3 +1041,61 @@
   background: color-mix(in srgb, var(--tblr-primary, #00857d) 12%, transparent);
   color: var(--tblr-primary, #00857d);
 }
+
+/* Toolbar search */
+.nsc-root .nsc-search {
+  position: relative;
+  width: 11rem;
+}
+.nsc-root .nsc-search input {
+  padding-left: 1.6rem;
+}
+.nsc-root .nsc-search-icon {
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--nsc-muted, #6c757d);
+  pointer-events: none;
+}
+.nsc-root .nsc-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  width: 20rem;
+  max-width: 80vw;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: var(--nsc-card);
+  border: 1px solid var(--nsc-border);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.nsc-root .nsc-search-results li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.nsc-root .nsc-search-results li.active {
+  background: var(--nsc-card-alt);
+}
+.nsc-root .nsc-search-name {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.nsc-root .nsc-search-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--nsc-muted, #6c757d);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nsc-root .nsc-search-results .nsc-search-empty {
+  color: var(--nsc-muted, #6c757d);
+  cursor: default;
+}

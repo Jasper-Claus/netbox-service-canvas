@@ -29,6 +29,7 @@ at the top and the **canvas** in the middle. Clicking a node or a connection ope
 | Grid / map / link icons | Snap to grid, minimap, show or hide the "runs on" lines |
 | Fit / reload icons | Show the whole canvas, reload from NetBox |
 | **PNG**, **SVG**, **PDF (A4)** | Export, see [[Export]] |
+| Search field | Find an object on this canvas by name, host, IP or port. Enter or a click jumps to it and opens its panel; arrow keys move through the hits, Esc clears. |
 | **Autosave** | Save layout changes automatically. When it is off, a **Save** button appears. |
 
 ## Edit mode and view mode

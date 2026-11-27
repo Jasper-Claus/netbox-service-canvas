@@ -3,6 +3,7 @@ Test scenario for line bending/colours, proxy connections, hops and application 
 Creates the site "Testlabor" with a small homelab and the canvas "Testlabor". Run with:
   docker compose exec -T netbox /opt/netbox/netbox/manage.py nbshell < ~/netbox-service-canvas/dev/test_scenario.py
 Idempotent: existing objects are reused, nothing is deleted.
+nbshell reads the file like an interactive console: keep a blank line after every indented block.
 
 Scenario:
   Internet access:  wireguard (opnsense) --proxy--> traefik --proxy--> paperless / immich / nextcloud / vaultwarden
@@ -165,6 +166,7 @@ if not canvas.notes.exists():
         '4. postgres ausfallen lassen: Apps werden orange\n'
         '5. Linie anklicken (Bearbeiten an): +-Punkte ziehen, Farbe wählen'
     ))
+
 if not canvas.groups.exists():
     CanvasGroup.objects.create(canvas=canvas, name='Internet-Zugang', x=-30, y=-50, width=720, height=330,
                                color='4299e1')

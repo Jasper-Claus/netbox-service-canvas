@@ -1,4 +1,6 @@
 import { t } from '../i18n';
+import type { ObjectDescriptor } from '../types';
+import { CanvasSearch } from './CanvasSearch';
 export type SaveState = 'saved' | 'dirty' | 'saving' | 'error';
 
 interface Props {
@@ -29,6 +31,8 @@ interface Props {
   onClearImpact: () => void;
   onReload: () => void;
   busy: boolean;
+  searchObjects: ObjectDescriptor[];
+  onSearchPick: (key: string) => void;
 }
 
 const SAVE_LABELS: Record<SaveState, { text: string; cls: string; icon: string }> = {
@@ -113,6 +117,8 @@ export function Toolbar(p: Props) {
           <i className="mdi mdi-file-pdf-box" /> PDF (A4)
         </button>
       </div>
+
+      <CanvasSearch objects={p.searchObjects} onPick={p.onSearchPick} />
 
       {p.impactName && (
         <span className="nsc-impact-chip">

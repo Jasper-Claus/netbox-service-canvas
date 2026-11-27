@@ -13,6 +13,8 @@ All notable changes to this project are documented here. The format follows
   source, for example a reverse proxy in front of an app. The impact analysis marks everything behind a failed proxy
   in yellow as *unreachable*, including proxy chains and the applications of those services.
 - **Hops count in the impact analysis**: if a hop of a connection fails, the connection breaks.
+- **Search on the canvas**: a small search field in the toolbar finds objects by name, host, IP or port and jumps
+  to them.
 - **Application icons**: choose one of 24 icons (database, web, DNS, backup, media, …) for an application. It is shown
   on the canvas, in the sidebar and in the node panel.
 

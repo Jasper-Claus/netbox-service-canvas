@@ -19,6 +19,7 @@ import {
   type CanvasNode,
 } from './graph';
 import { runsOnPair } from './components/ConnectDialog';
+import { searchObjects } from './components/CanvasSearch';
 import { addHandles, bezierPoint, halfway, smoothPath } from './components/FlowEdge';
 import type { Flow, GraphResponse, ObjectDescriptor } from './types';
 import { parsePorts, slugify } from './util';
@@ -427,5 +428,33 @@ describe('impact analysis', () => {
     expect(hopFails.flows.has(1)).toBe(true);
     // A failing hop of a proxy connection makes its target unreachable
     expect([...computeImpact('dcim.device:4', viaHop).unreachable]).toEqual(['ipam.service:3']);
+  });
+});
+
+describe('canvas search', () => {
+  const obj = (key: string, name: string, extra: Partial<ObjectDescriptor> = {}): ObjectDescriptor => ({
+    key, type: 'service', id: 1, name, url: '', status: null, primary_ip: null, subtitle: '', ...extra,
+  });
+  const objects = [
+    obj('ipam.service:1', 'postgres', { subtitle: 'TCP 5432', service: { protocol: 'tcp', protocol_label: 'TCP', ports: [5432], parent_key: 'x', parent_type: 'vm', parent_name: 'db-vm' } }),
+    obj('ipam.service:2', 'paperless'),
+    obj('dcim.device:1', 'pve1', { type: 'device', primary_ip: '10.0.0.5/24' }),
+    obj('netbox_service_canvas.application:1', 'PostgreSQL', { type: 'application' }),
+    obj('ipam.service:3', 'grafana-postgres-exporter'),
+  ];
+  const names = (q: string) => searchObjects(objects, q).map((d) => d.name);
+
+  it('ranks names that start with the query first', () => {
+    expect(names('post')).toEqual(['postgres', 'PostgreSQL', 'grafana-postgres-exporter']);
+    expect(names('PAPER')).toEqual(['paperless']);
+  });
+
+  it('finds objects by host, IP and port, and needs every word to match', () => {
+    expect(names('db-vm')).toEqual(['postgres']);
+    expect(names('10.0.0')).toEqual(['pve1']);
+    expect(names('5432')).toEqual(['postgres']);
+    expect(names('postgres db-vm')).toEqual(['postgres']);
+    expect(names('nothing here')).toEqual([]);
+    expect(names('   ')).toEqual([]);
   });
 });

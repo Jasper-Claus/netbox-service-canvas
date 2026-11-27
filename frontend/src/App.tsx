@@ -829,6 +829,25 @@ function Editor({ config }: { config: EditorConfig }) {
     return node && isObjectNode(node) ? node.data.desc : null;
   }, [nodes, selectedNodeKey, selectedFlowId]);
 
+  // Toolbar search: objects on this canvas, jump to the picked one
+  const searchable = useMemo(
+    () => nodes.flatMap((n) => (isObjectNode(n) && n.data.desc ? [n.data.desc] : [])),
+    [nodes],
+  );
+  const focusObject = useCallback((key: string) => {
+    setSelectedFlowId(null);
+    setSelectedNodeKey(key);
+    setNodes((ns) => ns.map((n) => {
+      const hit = n.id === key;
+      if (isObjectNode(n)) {
+        if (n.selected === hit && !!n.data.focused === hit) return n;
+        return { ...n, selected: hit, data: { ...n.data, focused: hit } };
+      }
+      return n.selected ? { ...n, selected: false } : n;
+    }));
+    void fitView({ nodes: [{ id: key }], maxZoom: 1.2, minZoom: 0.8, duration: 400 });
+  }, [fitView, setNodes]);
+
   const impactName = impactRoot ? (descriptorFor(impactRoot)?.name ?? impactRoot) : null;
 
   const contextValue: EditorContextValue = useMemo(() => ({
@@ -885,6 +904,8 @@ function Editor({ config }: { config: EditorConfig }) {
             void initialLoad();
           }}
           busy={busy || loading}
+          searchObjects={searchable}
+          onSearchPick={focusObject}
         />
         <div className="nsc-body">
           {sidebar && (
