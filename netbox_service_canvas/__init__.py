@@ -12,7 +12,7 @@ class ServiceCanvasConfig(PluginConfig):
     base_url = 'service-canvas'
     graphql_schema = 'graphql.schema.schema'
     min_version = '4.5.0'
-    max_version = '4.5.99'
+    max_version = '4.7.99'
     default_settings = {
         # Grid size (px) used for snapping and for rounding stored coordinates.
         'grid_size': 10,

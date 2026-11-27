@@ -5,7 +5,7 @@
 A NetBox plugin that shows on an interactive canvas which services run where, how they talk to each other and what
 breaks if a host fails.
 
-[![NetBox](https://img.shields.io/badge/NetBox-4.5.x-0d6efd?logo=netbox&logoColor=white)](https://github.com/netbox-community/netbox)
+[![NetBox](https://img.shields.io/badge/NetBox-4.5%20%E2%80%93%204.7-0d6efd?logo=netbox&logoColor=white)](https://github.com/netbox-community/netbox)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776ab?logo=python&logoColor=white)](https://www.python.org/)
 [![PyPI](https://img.shields.io/pypi/v/netbox-service-canvas?logo=pypi&logoColor=white)](https://pypi.org/project/netbox-service-canvas/)
 [![License](https://img.shields.io/badge/License-Apache--2.0-green)](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/LICENSE)
@@ -27,10 +27,10 @@ breaks if a host fails.
 
 ## Installation
 
-Requirements: NetBox 4.5.x and Python 3.12 or newer.
+Requirements: NetBox 4.5, 4.6 or 4.7 and Python 3.12 or newer.
 
 > [!WARNING]
-> The plugin declares support for NetBox 4.5 only. On a newer minor version (for example 4.6) the whole of NetBox
+> The plugin declares support for NetBox 4.5 to 4.7. On a newer minor version (for example 4.8) the whole of NetBox
 > refuses to start while the plugin is enabled. Before upgrading NetBox, check the
 > [releases](https://github.com/Jasper-Claus/netbox-service-canvas/releases) for a matching plugin version, or
 > remove `netbox_service_canvas` from `PLUGINS` first.
@@ -89,7 +89,7 @@ netbox-service-canvas
 `Dockerfile-Plugins` (use the same image tag as in your `docker-compose.yml`)
 
 ```dockerfile
-FROM netboxcommunity/netbox:v4.5
+FROM netboxcommunity/netbox:v4.7
 
 COPY ./plugin_requirements.txt /opt/netbox/
 RUN /usr/local/bin/uv pip install -r /opt/netbox/plugin_requirements.txt
@@ -180,7 +180,7 @@ A German step-by-step guide with backup and restore is in
 | Symptom | Cause and fix |
 |---|---|
 | The editor stays at "Loading canvas…". The browser console shows a 404 for `canvas.js` or "MIME type ("") blocked". `collectstatic` fails with `PermissionError`. | The static files were not collected. Add the `collectstatic` line to `Dockerfile-Plugins` (step 2) and rebuild. To run it by hand in netbox-docker, run it as root: `docker compose exec -u root netbox /opt/netbox/netbox/manage.py collectstatic --no-input`. Then reload with Ctrl+F5. |
-| NetBox does not start: `ImproperlyConfigured … requires NetBox …` | The NetBox version is not 4.5.x. See the warning above. |
+| NetBox does not start: `ImproperlyConfigured … requires NetBox …` | The NetBox version is older than 4.5 or newer than 4.7. See the warning above. |
 | `ModuleNotFoundError: No module named 'netbox_service_canvas'` | The image was not rebuilt, or the package line is missing from `plugin_requirements.txt`. |
 | 403 when saving | The user lacks a permission. The editor names the missing one. See [Permissions](#permissions). |
 
@@ -318,7 +318,7 @@ The code, tests and documentation of this plugin were written by AI ([Claude](ht
 I contributed the idea and requirements, tested it in my homelab and gave feedback. Issues and pull requests are
 welcome.
 
-How it is kept maintainable: every change runs the Django tests against NetBox 4.5 and the frontend tests in CI,
+How it is kept maintainable: every change runs the Django tests against NetBox 4.5, 4.6 and 4.7 and the frontend tests in CI,
 dependencies are updated through Dependabot, security reports go through
 [SECURITY.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/SECURITY.md), and every release is
 listed in the changelog. The plugin only uses NetBox's own models, permissions and change log, so it does not touch

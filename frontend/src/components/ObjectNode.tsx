@@ -55,7 +55,7 @@ function ObjectNodeComponent({ data, selected }: NodeProps<ObjectNodeType>) {
   }
 
   const ports = desc.service?.ports?.length
-    ? `${desc.service.protocol_label} ${desc.service.ports.join(', ')}`
+    ? desc.service.ports_label || `${desc.service.protocol_label} ${desc.service.ports.join(', ')}`
     : null;
   const app = desc.application;
 

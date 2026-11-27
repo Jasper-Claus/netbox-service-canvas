@@ -3,12 +3,13 @@ from ipam.models import Service
 from utilities.testing import create_test_device, create_test_virtualmachine
 
 from ..choices import ConnectionProtocolChoices
+from ..compat import service_create_kwargs
 from ..models import ServiceConnection
 
 
 def create_service(parent, name, port=80):
     return Service.objects.create(
-        parent=parent, name=name, protocol=ServiceProtocolChoices.PROTOCOL_TCP, ports=[port],
+        parent=parent, name=name, **service_create_kwargs(ServiceProtocolChoices.PROTOCOL_TCP, [port]),
     )
 
 

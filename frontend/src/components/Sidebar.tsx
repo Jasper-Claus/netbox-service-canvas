@@ -31,7 +31,8 @@ interface Props {
 type Result = BriefObject & {
   parent?: { display?: string } | null;
   protocol?: { label?: string };
-  ports?: number[];
+  ports?: number[] | null;
+  port_mappings?: string[]; // NetBox 4.7+, e.g. ["tcp/80", "udp/53"]
   status?: { label?: string } | string;
   version?: string;
   description?: string;
@@ -39,7 +40,10 @@ type Result = BriefObject & {
 
 function secondLine(type: string, r: Result): string {
   if (type === 'ipam.service') {
-    return `${r.protocol?.label ?? ''} ${r.ports?.join(', ') ?? ''}${r.parent?.display ? ` · ${r.parent.display}` : ''}`.trim();
+    const ports = r.ports?.length
+      ? `${r.protocol?.label ?? ''} ${r.ports.join(', ')}`
+      : (r.port_mappings ?? []).join(', ').toUpperCase();
+    return `${ports}${r.parent?.display ? ` · ${r.parent.display}` : ''}`.trim();
   }
   if (type === APPLICATION_LABEL) {
     const status = typeof r.status === 'object' ? r.status?.label : r.status;

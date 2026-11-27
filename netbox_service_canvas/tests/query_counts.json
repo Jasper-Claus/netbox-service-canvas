@@ -1,0 +1,10 @@
+{
+  "application:api_list_objects": 13,
+  "application:list_objects_with_permission": 17,
+  "canvas:api_list_objects": 12,
+  "canvas:list_objects_with_permission": 16,
+  "connectionhop:api_list_objects": 17,
+  "connectionhop:list_objects_with_permission": 22,
+  "serviceconnection:api_list_objects": 16,
+  "serviceconnection:list_objects_with_permission": 20
+}

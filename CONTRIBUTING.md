@@ -13,7 +13,8 @@ Please [open an issue](https://github.com/Jasper-Claus/netbox-service-canvas/iss
 
 ## Ground rules
 
-- **NetBox 4.5.x** is the target.
+- **NetBox 4.5 to 4.7** are supported. Code that touches NetBox models whose fields differ between versions (for
+  example `Service.port_mappings` from 4.7) goes through `netbox_service_canvas/compat.py`.
 - Relationships are real NetBox data; the canvas only stores the layout. New features should follow that idea, so
   connections stay usable without a canvas (tabs, API, export).
 - Stay compatible with [netbox-branching](https://github.com/netboxlabs/netbox-branching). netbox-branching replays
@@ -73,8 +74,14 @@ Lint:
 ruff check netbox_service_canvas --select E,F
 ```
 
-CI runs the frontend tests and build, the lint and the Django tests against NetBox v4.5.7 and the newest 4.5
-release. All of them must pass before a pull request is merged.
+CI runs the frontend tests and build, the lint and the Django tests against NetBox v4.5.7 and the newest 4.5, 4.6
+and 4.7 release. All of them must pass before a pull request is merged.
+
+NetBox 4.6 and newer compare list views and API lists against stored query counts in
+`netbox_service_canvas/tests/query_counts.json`. The file is recorded against NetBox 4.7 and only checked there
+(the counts differ by one query on 4.6). If a change alters them on purpose, re-record it on 4.7 with
+`UPDATE_QUERY_COUNTS=1 python manage.py test netbox_service_canvas` (serially, no `--parallel`) and commit it. On
+other versions, run the tests with `UPDATE_QUERY_COUNTS=1` and do not commit the changed file.
 
 Test data for trying things out by hand: `dev/test_scenario.py` creates the canvas "Testlabor" (reverse proxy chain,
 hops, switch with cables, application icons):

@@ -6,8 +6,8 @@ Only the latest release receives fixes. Please update before reporting.
 
 | Version | Supported |
 |---|---|
-| 0.4.x | ✅ |
-| < 0.4 | ❌ |
+| 0.5.x | ✅ |
+| < 0.5 | ❌ |
 
 ## Reporting a vulnerability
 
@@ -28,5 +28,5 @@ Useful context for judging a report:
 - All writes go through NetBox models with `full_clean()` and the change log (no raw SQL).
 - It makes **no outbound requests** and loads no assets from CDNs; the frontend is bundled with the plugin.
 - It does not scan, ping or connect to anything in your network. Everything it shows comes from the NetBox database.
-- Dependencies are updated through Dependabot; CI runs the backend tests against NetBox 4.5 and the frontend tests on
+- Dependencies are updated through Dependabot; CI runs the backend tests against NetBox 4.5, 4.6 and 4.7 and the frontend tests on
   every change.
