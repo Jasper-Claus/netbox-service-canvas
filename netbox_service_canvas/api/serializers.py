@@ -100,11 +100,16 @@ class ConnectionHopSerializer(NetBoxModelSerializer):
         brief_fields = ('id', 'url', 'display', 'order', 'object_type', 'object_id', 'note')
 
     def validate(self, data):
-        # Append to the end of the connection if no position is given
-        if not data.get('order') and not self.instance and data.get('connection'):
-            last = ConnectionHop.objects.filter(connection=data['connection']).order_by('-order') \
-                .values_list('order', flat=True).first()
-            data['order'] = (last or 0) + 1
+        # Append to the end of the connection if no position is given. In a bulk create the earlier hops of the same
+        # request are not saved yet, so the positions handed out in this request are remembered in the context.
+        connection = data.get('connection')
+        if connection and not self.instance:
+            taken = self.context.setdefault('_hop_orders', {})
+            if not data.get('order'):
+                last = ConnectionHop.objects.filter(connection=connection).order_by('-order') \
+                    .values_list('order', flat=True).first()
+                data['order'] = max(last or 0, taken.get(connection.pk, 0)) + 1
+            taken[connection.pk] = max(taken.get(connection.pk, 0), data['order'])
         return super().validate(data)
 
 

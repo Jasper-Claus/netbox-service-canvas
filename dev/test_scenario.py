@@ -184,8 +184,7 @@ if not canvas.notes.exists():
         '3. opnsense ausfallen lassen: Hops brechen, immich/paperless werden orange\n'
         '4. postgres ausfallen lassen: Apps werden orange\n'
         '5. switch ausfallen lassen: pve1 und truenas werden gelb, pve2 nicht (2. Kabel)\n'
-        '6. Linie anklicken (Bearbeiten an): +-Punkte ziehen, Farbe wählen
-'
+        '6. Linie anklicken (Bearbeiten an): +-Punkte ziehen, Farbe wählen\n'
         '7. Suche oben: z. B. "5432" oder "db-vm"'
     ))
 

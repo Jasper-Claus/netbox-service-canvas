@@ -1,0 +1,35 @@
+# Dependency updates as pull requests, once a week, grouped so they do not flood the repository.
+# CI runs on every Dependabot pull request; merge only when it is green.
+version: 2
+updates:
+  # Frontend build and test dependencies (bundled into netbox_service_canvas/static/.../dist/)
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "deps(frontend)"
+
+  # GitHub Actions used in the workflows
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(ci)"
+
+  # Python packaging (pyproject.toml); the plugin itself only depends on NetBox
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "deps(python)"

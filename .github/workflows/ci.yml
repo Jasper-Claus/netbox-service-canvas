@@ -48,9 +48,6 @@ jobs:
   netbox:
     name: Django tests (NetBox ${{ matrix.netbox }})
     runs-on: ubuntu-latest
-    # Some tests currently fail (see CONTRIBUTING.md, "Tests"). Until they are fixed, this job reports but does not
-    # block. Remove continue-on-error once the suite is green.
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:

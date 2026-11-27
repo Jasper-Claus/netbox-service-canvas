@@ -275,11 +275,28 @@ Users without change permission see the canvas in view-only mode.
 NetBox documents my homelab down to every cable and IP, but it did not show which service runs on which host and who
 talks to whom. This plugin adds that service layer.
 
+## What this is not
+
+- **Not a monitoring tool.** Nothing is pinged, polled or measured. The canvas shows what is documented in NetBox,
+  and the impact analysis answers "what if this fails?" from that documentation. Live state belongs in your
+  monitoring (Uptime Kuma, Zabbix, Prometheus, …).
+- **Not a discovery tool.** It does not scan your network or import anything automatically. Discovery and imports
+  are better done by the tools made for that (Diode, Orb, NAPALM, …) feeding NetBox.
+- **Not another network diagram.** Topology plugins draw cables and devices. This plugin adds the service layer on
+  top: which service runs where, who talks to whom, through which proxy, and what breaks. The cables are only an
+  optional layer for the impact analysis.
+
 ## Built with AI
 
 The code, tests and documentation of this plugin were written by AI ([Claude](https://claude.ai) via Claude Code).
 I contributed the idea and requirements, tested it in my homelab and gave feedback. Issues and pull requests are
 welcome.
+
+How it is kept maintainable: every change runs the Django tests against NetBox 4.5 and the frontend tests in CI,
+dependencies are updated through Dependabot, security reports go through
+[SECURITY.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/SECURITY.md), and every release is
+listed in the changelog. The plugin only uses NetBox's own models, permissions and change log, so it does not touch
+NetBox core.
 
 ## License
 

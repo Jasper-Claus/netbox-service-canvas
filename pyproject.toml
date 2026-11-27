@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netbox-service-canvas"
-version = "0.3.0"
+version = "0.4.0"
 description = "Interactive canvas for NetBox: which services run where, how they talk to each other and what breaks if a host fails."
 readme = "README.md"
 license = "Apache-2.0"

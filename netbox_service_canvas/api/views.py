@@ -6,6 +6,7 @@ from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.response import Response
 from rest_framework.routers import APIRootView
 
@@ -17,6 +18,21 @@ from ..models import Application, Canvas, CanvasGroup, CanvasNode, CanvasNote, C
 from . import serializers
 
 LAYOUT_CHANGELOG_MESSAGE = 'Canvas layout saved'
+
+
+class ActionPermission(BasePermission):
+    """
+    For custom actions that check object permissions themselves: the user must be authenticated, and an API token must
+    be write-enabled for unsafe methods. NetBox's default would map POST to the "add" permission of the view's model,
+    which does not fit an action like reordering.
+    """
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.method in SAFE_METHODS or not hasattr(request.auth, 'write_enabled'):
+            return True
+        return bool(request.auth.write_enabled)
 
 
 class ServiceCanvasRootView(APIRootView):
@@ -40,14 +56,13 @@ class ServiceConnectionViewSet(NetBoxModelViewSet):
     @extend_schema(
         request=serializers.HopOrderSerializer, responses={200: serializers.ConnectionHopSerializer(many=True)}
     )
-    @action(detail=True, methods=['post'], url_path='reorder-hops')
+    @action(detail=True, methods=['post'], url_path='reorder-hops', permission_classes=[ActionPermission])
     def reorder_hops(self, request, pk=None):
         """
         Set the order of all hops of a connection in one transaction: {"hops": [<hop id>, ...]} (first = 1).
         Requires `change` permission on the connection hops.
         """
-        # NetBox restricts POST requests to the "add" action; reordering needs "view" on the connection plus
-        # "change" on its hops (checked below).
+        # Reordering needs "view" on the connection plus "change" on its hops (checked below), not "add".
         connection = get_object_or_404(ServiceConnection.objects.restrict(request.user, 'view'), pk=pk)
         serializer = serializers.HopOrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

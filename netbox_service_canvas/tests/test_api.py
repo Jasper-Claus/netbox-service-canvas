@@ -85,6 +85,11 @@ class ConnectionHopAPITest(APIViewTestCases.APIViewTestCase):
             {'connection': other.pk, 'object_type': 'ipam.vrf', 'object_id': vrfs[4].pk, 'note': 'append'},
         ]
 
+    def setUp(self):
+        super().setUp()
+        # GraphQL resolves the (non-nullable) connection of a hop with the user's permissions
+        self.add_permissions('netbox_service_canvas.view_serviceconnection')
+
 
 class ApplicationAPITest(APIViewTestCases.APIViewTestCase):
     model = Application
@@ -162,7 +167,8 @@ class CanvasLayoutAPITest(APITestCase):
     def test_put_requires_change_permission(self):
         self.add_permissions('netbox_service_canvas.view_canvas')
         response = self.client.put(self.url(), {'nodes': []}, format='json', **self.header)
-        self.assertHttpStatus(response, status.HTTP_404_NOT_FOUND)
+        # NetBox's API permission check maps PUT to "change" and refuses before the object is looked up
+        self.assertHttpStatus(response, status.HTTP_403_FORBIDDEN)
 
     def test_put_requires_node_permission(self):
         self.add_permissions('netbox_service_canvas.view_canvas', 'netbox_service_canvas.change_canvas')

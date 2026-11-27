@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] – 2026-11-27
+
+Shaped by the feedback on the 0.3.0 announcement: the plugin stays a documentation tool (impact assessment, design,
+security review) and does not become a monitoring tool. New features use data that is already in NetBox where
+possible, and the test suite is fully green again.
+
 ### Added
 - **Bendable connection lines**: select a line in edit mode and drag the small dots to add bend points. Double-click a
   point to remove it, *Reset shape* straightens the line again. The shape is saved per canvas.
@@ -27,7 +33,20 @@ All notable changes to this project are documented here. The format follows
 - Migration `0003` adds `Application.icon`, `ServiceConnection.kind` (default *uses*, so existing connections behave
   as before) and `Canvas.edge_styles`.
 - `PUT …/canvases/<id>/layout/` accepts and returns `edge_styles`; the graph API returns `kind` and `hop_keys` for
-  each connection.
+  each connection and `cables` for the physical layer.
+- The Django tests are now required in CI (no longer `continue-on-error`).
+- README: new section *What this is not* (no monitoring, no discovery).
+
+### Fixed
+- Creating several hops in one bulk API request without an explicit order failed with a duplicate order error.
+- `POST …/connections/<id>/reorder-hops/` required the *add* permission on connections; it now needs *view* on the
+  connection and *change* on its hops, as documented.
+- The 6 failing Django tests (hop bulk create, GraphQL, reorder, layout permission) pass.
+
+### Project
+- `SECURITY.md` with a private reporting channel, Dependabot for frontend dependencies, GitHub Actions and Python
+  packaging.
+- `dev/test_scenario.py`: a ready-made test lab (reverse proxy chain, hops, switch with cables, app icons).
 
 ## [0.3.0] – 2026-11-25
 
@@ -78,6 +97,8 @@ All notable changes to this project are documented here. The format follows
 - Initial release: `ServiceConnection`, `ConnectionHop`, canvases with groups and nodes, interactive editor (drag &
   drop, edge drawing, auto layout, autosave, PNG/SVG export), REST API, GraphQL and NetBox UI integration.
 
+[Unreleased]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Jasper-Claus/netbox-service-canvas/releases/tag/v0.1.0

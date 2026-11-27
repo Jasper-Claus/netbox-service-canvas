@@ -1,24 +1,31 @@
 # GitHub-Repo: Checkliste für den Maintainer
 
-Diese Datei listet alles, was sich nicht über Dateien im Repo einstellen lässt. Repo, Tag `v0.2.0` und das
-Release v0.2.0 gibt es schon. Offen ist alles ab Version 0.3.0 (englische Oberfläche, `pip install`, Demo-GIF).
+Diese Datei listet alles, was sich nicht über Dateien im Repo einstellen lässt. Repo, PyPI und die Releases v0.2.0
+und v0.3.0 gibt es schon. Offen ist Version 0.4.0 (biegbare Linien, Proxy, Kabel-Ebene, Suche, App-Symbole).
 
-## ✅ Jetzt noch zu tun (in dieser Reihenfolge)
+## ✅ Jetzt noch zu tun für v0.4.0 (in dieser Reihenfolge)
 
-- [ ] **1. Änderungen committen und pushen.** Danach sind README, GIF, Bilder und Doku auf GitHub sichtbar.
-- [ ] **2. Social Preview hochladen:** Settings → General → Social preview → Edit → `docs/images/social-preview.png`.
-- [ ] **3. About-Box prüfen:** Beschreibung, Website und Topics (siehe [Abschnitt 2](#2-beschreibung-website-topics)).
-- [ ] **4. Discussions einschalten:** Settings → General → Features → *Discussions*. Der Issue-Dialog verlinkt dorthin.
-- [ ] **5. PyPI einrichten** (einmalig, [Abschnitt 4](#4-pypi-einrichten-einmalig)): Konto, Trusted Publisher und
-      GitHub-Environment `pypi`.
-- [ ] **6. Release v0.3.0 erstellen** ([Abschnitt 5](#5-release-v030)) und unter **Actions** prüfen, dass
+- [ ] **1. Django-Tests auf der Dev laufen lassen** (alle grün?):
+      `docker compose exec netbox /opt/netbox/netbox/manage.py test netbox_service_canvas --keepdb`
+- [ ] **2. Branch nach `main` mergen und pushen.** Danach unter **Actions** prüfen, dass *CI* komplett grün ist. Die
+      Django-Tests blockieren jetzt, ein roter Test hält also das Badge rot.
+- [ ] **3. Sicherheit einschalten** (Settings → *Code security*, alles einmalig):
+  - *Private vulnerability reporting* → **Enable** (dafür verlinkt `SECURITY.md` auf „Report a vulnerability“)
+  - *Dependabot alerts* → **Enable**
+  - *Dependabot security updates* → **Enable**
+  - *Code scanning / CodeQL* → **Set up → Default** (optional, prüft Python und TypeScript auf Sicherheitslücken)
+- [ ] **4. Release v0.4.0 erstellen** ([Abschnitt 5](#5-release-v040)) und unter **Actions** prüfen, dass
       *Publish to PyPI* grün ist.
-- [ ] **7. Installation testen:** auf der NetBox-VM `netbox-service-canvas==0.3.0` in `plugin_requirements.txt`
-      eintragen, neu bauen, `migrate`, `collectstatic`. Editor öffnen, auf Deutsch und auf Englisch anschauen
-      (Sprache in den NetBox-Benutzereinstellungen umschalten).
-- [ ] **8. Wiki hochladen bzw. aktualisieren** ([Abschnitt 6](#6-wiki)). Die Seiten haben jetzt englische Button-Namen.
-- [ ] **9. Repo auf dem Profil anpinnen:** github.com/Jasper-Claus → *Customize your pins*.
-- [ ] **10. Bekannt machen** ([Abschnitt 7](#7-bekannt-machen-fertige-posts)), erst wenn `pip install` funktioniert.
+- [ ] **5. Produktion aktualisieren:** Backup, `netbox-service-canvas==0.4.0` in `plugin_requirements.txt`,
+      `docker compose build --no-cache`, `docker compose up -d` (Migration `0003` läuft automatisch), Strg+F5.
+- [ ] **6. Wiki aktualisieren** ([Abschnitt 6](#6-wiki)): Editor-Guide und Impact-Analysis haben neue Abschnitte.
+- [ ] **7. Auf Reddit antworten** (optional): Hinweis auf 0.4.0, *What this is not* im README, `SECURITY.md` und die
+      grüne CI. Das beantwortet die Fragen nach Monitoring und Wartung.
+
+Was Dependabot danach macht: einmal pro Woche (Frontend) bzw. pro Monat (GitHub Actions, Python) einen Pull Request
+mit Updates, gebündelt. Die CI läuft darauf automatisch. Ist sie grün, kannst du mergen; das gebaute Frontend
+(`dist/`) muss danach einmal mit `npm run build` neu erzeugt und committet werden, wenn sich Frontend-Pakete geändert
+haben.
 
 ---
 
@@ -80,18 +87,19 @@ kein API-Token gespeichert (PyPI *Trusted Publishing*).
 3. Auf GitHub: **Settings → Environments → New environment** → Name `pypi`. Optional *Required reviewers* mit dir
    selbst; dann muss jeder Upload in Actions kurz bestätigt werden.
 
-## 5. Release v0.3.0
+## 5. Release v0.4.0
 
-Die Version in `pyproject.toml` (jetzt `0.3.0`) muss zum Tag passen, sonst bricht der Workflow ab.
+Die Version in `pyproject.toml` (jetzt `0.4.0`) muss zum Tag passen, sonst bricht der Workflow ab. Erst taggen, wenn
+`main` gepusht und die CI grün ist.
 
 ```powershell
-git tag -a v0.3.0 -m "v0.3.0"
+git tag -a v0.4.0 -m "v0.4.0"
 ```
 ```powershell
-git push origin v0.3.0
+git push origin v0.4.0
 ```
 ```powershell
-gh release create v0.3.0 --title "v0.3.0: English UI, pip install, VM impact" --notes "English UI (follows the NetBox language), pip install netbox-service-canvas, impact analysis follows VMs on their hypervisor. See CHANGELOG.md."
+gh release create v0.4.0 --title "v0.4.0: Proxy-aware impact analysis, cable layer, bendable lines" --notes-file docs/release-notes-0.4.0.md
 ```
 
 Danach läuft *Publish to PyPI* unter **Actions**. Wenn er grün ist, funktioniert `pip install netbox-service-canvas`.

@@ -74,11 +74,14 @@ ruff check netbox_service_canvas --select E,F
 ```
 
 CI runs the frontend tests and build, the lint and the Django tests against NetBox v4.5.7 and the newest 4.5
-release.
+release. All of them must pass before a pull request is merged.
 
-Known issue: 6 of the 278 Django tests currently fail on both NetBox versions (connection hops: bulk create, GraphQL,
-reorder; layout permission check). Until they are fixed, the Django test job is marked `continue-on-error` and does
-not turn the CI badge red. Fixes are welcome.
+Test data for trying things out by hand: `dev/test_scenario.py` creates the canvas "Testlabor" (reverse proxy chain,
+hops, switch with cables, application icons):
+
+```bash
+docker compose exec -T netbox /opt/netbox/netbox/manage.py nbshell < ~/netbox-service-canvas/dev/test_scenario.py
+```
 
 ## Pull requests
 
