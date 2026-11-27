@@ -129,7 +129,7 @@ connection(traefik, vaultwarden, 'https', 8081, kind='proxy')
 connection(authelia, grafana, 'https', 3000, 'nur nach Login', kind='proxy')
 
 # Dependencies: the source needs the target
-connection(traefik, unbound, 'dns', 53, 'Namensauflösung')
+connection(traefik, unbound, 'udp', 53, 'DNS-Namensauflösung')
 connection(paperless, postgres, 'tcp', 5432, 'Dokument-Metadaten')
 connection(paperless, redis, 'tcp', 6379, 'Task-Queue')
 connection(immich, postgres, 'tcp', 5432, 'Foto-Metadaten')
