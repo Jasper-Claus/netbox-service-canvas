@@ -37,6 +37,7 @@ class ServiceConnectionViewTest(PluginURLMixin, ViewTestCases.PrimaryObjectViewT
             'target_type': ContentType.objects.get_for_model(Device).pk,
             'target': o['device1'].pk,
             'direction': 'uni',
+            'kind': 'uses',
             'protocol': 'https',
             'port': 9100,
             'data_description': 'Metrics',
