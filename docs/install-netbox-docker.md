@@ -7,14 +7,14 @@ an, wie in der README unter „Noch keine Plugins installiert?“ beschrieben (o
 
 | | |
 |---|---|
-| NetBox | 4.5.x |
+| NetBox | 4.5, 4.6 oder 4.7 |
 | Python-Paket | `netbox-service-canvas` ([PyPI](https://pypi.org/project/netbox-service-canvas/)) |
 | Django-App / `PLUGINS`-Eintrag | `netbox_service_canvas` |
 | URL-Präfix | `/plugins/service-canvas/`, API `/api/plugins/service-canvas/` |
 | Node.js im Container | nicht nötig, das Frontend liegt fertig gebaut im Paket |
 
 > [!WARNING]
-> Das Plugin erklärt sich nur mit NetBox 4.5 kompatibel. Auf einer neueren Minor-Version (zum Beispiel 4.6) startet
+> Das Plugin erklärt sich mit NetBox 4.5 bis 4.7 kompatibel. Auf einer neueren Minor-Version (zum Beispiel 4.8) startet
 > NetBox insgesamt nicht, solange das Plugin aktiviert ist. Vor einem NetBox-Upgrade unter
 > [Releases](https://github.com/Jasper-Claus/netbox-service-canvas/releases) nach einer passenden Plugin-Version
 > sehen oder das Plugin vorher aus `PLUGINS` entfernen.
@@ -65,7 +65,7 @@ RUN DEBUG="true" SECRET_KEY="dummydummydummydummydummydummydummydummydummydummy"
 Vollständig sieht die Datei typischerweise so aus (Image-Tag wie in deiner `docker-compose.yml`):
 
 ```dockerfile
-FROM netboxcommunity/netbox:v4.5
+FROM netboxcommunity/netbox:v4.7
 
 COPY ./plugin_requirements.txt /opt/netbox/
 RUN /usr/local/bin/uv pip install -r /opt/netbox/plugin_requirements.txt
@@ -198,6 +198,6 @@ Core-Daten wie Devices, VMs und Services bleiben unangetastet. Das Plugin änder
 | Editor bleibt bei „Loading canvas…“ / „Lade Canvas…“ stehen; Browser-Konsole zeigt 404 für `canvas.js` oder „MIME type ("") blocked“; `collectstatic` bricht mit `PermissionError` ab | Die Static-Dateien fehlen. Die `collectstatic`-Zeile in `Dockerfile-Plugins` ergänzen (Schritt 3) und neu bauen. Von Hand nur als root: `docker compose exec -u root netbox /opt/netbox/netbox/manage.py collectstatic --no-input`. Danach Strg+F5. |
 | Editor sieht nach einem Update alt aus | Browser-Cache: Strg+F5. |
 | `ModuleNotFoundError: netbox_service_canvas` | Image nicht neu gebaut, oder die Zeile fehlt in `plugin_requirements.txt`. |
-| `ImproperlyConfigured … requires NetBox …` | NetBox-Version ist nicht 4.5.x (siehe Warnung oben). |
+| `ImproperlyConfigured … requires NetBox …` | NetBox-Version ist älter als 4.5 oder neuer als 4.7 (siehe Warnung oben). |
 | 403 beim Speichern des Layouts | Rechte fehlen (siehe Schritt 6.2); der Editor zeigt die fehlende Berechtigung als Meldung an. |
 | Migration hängt in einem Branch | siehe „Hinweis zu netbox-branching“. |

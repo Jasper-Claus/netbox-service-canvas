@@ -17,10 +17,10 @@ einem Ausfall betroffen ist.</sub>
 
 ## Installation
 
-Voraussetzungen: NetBox 4.5.x und Python 3.12 oder neuer.
+Voraussetzungen: NetBox 4.5, 4.6 oder 4.7 und Python 3.12 oder neuer.
 
 > [!WARNING]
-> Das Plugin erklärt sich nur mit NetBox 4.5 kompatibel. Auf einer neueren Minor-Version (zum Beispiel 4.6) startet
+> Das Plugin erklärt sich mit NetBox 4.5 bis 4.7 kompatibel. Auf einer neueren Minor-Version (zum Beispiel 4.8) startet
 > NetBox insgesamt nicht, solange das Plugin aktiviert ist. Vor einem NetBox-Upgrade unter
 > [Releases](https://github.com/Jasper-Claus/netbox-service-canvas/releases) nach einer passenden Plugin-Version
 > sehen oder `netbox_service_canvas` vorher aus `PLUGINS` entfernen.
@@ -80,7 +80,7 @@ netbox-service-canvas
 `Dockerfile-Plugins` (dasselbe Image-Tag wie in deiner `docker-compose.yml` verwenden)
 
 ```dockerfile
-FROM netboxcommunity/netbox:v4.5
+FROM netboxcommunity/netbox:v4.7
 
 COPY ./plugin_requirements.txt /opt/netbox/
 RUN /usr/local/bin/uv pip install -r /opt/netbox/plugin_requirements.txt
@@ -171,7 +171,7 @@ Eine ausführliche Anleitung mit Backup und Wiederherstellung steht in
 | Symptom | Ursache und Lösung |
 |---|---|
 | Der Editor bleibt bei „Lade Canvas…“ stehen. Die Browser-Konsole zeigt 404 für `canvas.js` oder „MIME type ("") blocked“. `collectstatic` bricht mit `PermissionError` ab. | Die Static-Dateien wurden nicht gesammelt. Die `collectstatic`-Zeile in `Dockerfile-Plugins` ergänzen (Schritt 2) und neu bauen. Von Hand in netbox-docker nur als root: `docker compose exec -u root netbox /opt/netbox/netbox/manage.py collectstatic --no-input`. Danach mit Strg+F5 neu laden. |
-| NetBox startet nicht: `ImproperlyConfigured … requires NetBox …` | Die NetBox-Version ist nicht 4.5.x. Siehe Warnung oben. |
+| NetBox startet nicht: `ImproperlyConfigured … requires NetBox …` | Die NetBox-Version ist älter als 4.5 oder neuer als 4.7. Siehe Warnung oben. |
 | `ModuleNotFoundError: No module named 'netbox_service_canvas'` | Das Image wurde nicht neu gebaut, oder die Paketzeile fehlt in `plugin_requirements.txt`. |
 | 403 beim Speichern | Dem Benutzer fehlt eine Berechtigung. Der Editor nennt die fehlende. Siehe [Berechtigungen](#berechtigungen). |
 
@@ -305,7 +305,7 @@ läuft und wer mit wem spricht. Dieses Plugin ergänzt diese Service-Ebene.
 Code, Tests und Dokumentation dieses Plugins hat eine KI geschrieben ([Claude](https://claude.ai) über Claude Code).
 Von mir kamen Idee und Anforderungen, Tests im Homelab und Feedback. Issues und Pull Requests sind willkommen.
 
-So bleibt es wartbar: Jede Änderung durchläuft in der CI die Django-Tests gegen NetBox 4.5 und die Frontend-Tests,
+So bleibt es wartbar: Jede Änderung durchläuft in der CI die Django-Tests gegen NetBox 4.5, 4.6 und 4.7 und die Frontend-Tests,
 Abhängigkeiten werden über Dependabot aktualisiert, Sicherheitsmeldungen laufen über [SECURITY.md](../SECURITY.md),
 und jede Version steht im Changelog. Das Plugin nutzt nur NetBox' eigene Modelle, Berechtigungen und den Changelog
 und greift nicht in den NetBox-Core ein.

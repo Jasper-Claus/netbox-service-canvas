@@ -5,6 +5,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] – 2026-11-27
+
+### Added
+- **NetBox 4.6 and 4.7 support** ([#10](https://github.com/Jasper-Claus/netbox-service-canvas/issues/10),
+  [#11](https://github.com/Jasper-Claus/netbox-service-canvas/issues/11)). The plugin now runs on NetBox 4.5, 4.6
+  and 4.7.
+- Services with several protocols (NetBox 4.7 `port_mappings`, e.g. `tcp/53` and `udp/53`) show all their ports on
+  the canvas, in the node panel and in the sidebar.
+
+### Changed
+- `max_version` is `4.7.99`. CI runs the Django tests against NetBox v4.5.7 and the newest 4.5, 4.6 and 4.7 release.
+- The graph API returns `ports_label` and `multi_protocol` for services.
+- Quick edit in the node panel only renames a service with several protocols; its ports are edited in NetBox.
+- Dependabot no longer opens pull requests for major versions of frontend packages (security updates still arrive).
+- README: complete feature list, German README with *What this is not*.
+
+### Fixed
+- On NetBox 4.7 every canvas containing a service failed to load (`get_protocol_display` no longer exists on
+  services).
+
 ## [0.4.0] – 2026-11-27
 
 Shaped by the feedback on the 0.3.0 announcement: the plugin stays a documentation tool (impact assessment, design,
@@ -97,7 +117,8 @@ possible, and the test suite is fully green again.
 - Initial release: `ServiceConnection`, `ConnectionHop`, canvases with groups and nodes, interactive editor (drag &
   drop, edge drawing, auto layout, autosave, PNG/SVG export), REST API, GraphQL and NetBox UI integration.
 
-[Unreleased]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.1.0...v0.2.0
