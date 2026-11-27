@@ -98,6 +98,9 @@ jobs:
       - name: Collect static files
         run: python netbox/netbox/manage.py collectstatic --no-input
       - name: Check for missing migrations
+        # Only against the oldest supported release: NetBox 4.7 adds related_name='+' to the inherited owner field,
+        # a state-only difference that would otherwise ask for a migration that 4.5 and 4.6 would then reverse.
+        if: matrix.netbox == 'v4.5.7'
         run: python netbox/netbox/manage.py makemigrations netbox_service_canvas --check --dry-run
       - name: Run the plugin's tests
         # NetBox 4.7+ compares list views and API lists against stored query counts (tests/query_counts.json).
