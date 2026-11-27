@@ -56,9 +56,11 @@ stehen auf [PyPI](https://pypi.org/project/netbox-service-canvas/#history) und u
 
 ## 3. Static-Dateien beim Bauen sammeln: `Dockerfile-Plugins`
 
-Die Datei öffnen (`nano Dockerfile-Plugins`). Sie muss mit dieser Zeile enden:
+Die Datei öffnen (`nano Dockerfile-Plugins`). Sie muss mit diesen drei Zeilen enden:
 
 ```dockerfile
+COPY configuration/configuration.py /etc/netbox/config/configuration.py
+COPY configuration/plugins.py /etc/netbox/config/plugins.py
 RUN DEBUG="true" SECRET_KEY="dummydummydummydummydummydummydummydummydummydummy" /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input
 ```
 
@@ -70,12 +72,19 @@ FROM netboxcommunity/netbox:v4.7
 COPY ./plugin_requirements.txt /opt/netbox/
 RUN /usr/local/bin/uv pip install -r /opt/netbox/plugin_requirements.txt
 
+COPY configuration/configuration.py /etc/netbox/config/configuration.py
+COPY configuration/plugins.py /etc/netbox/config/plugins.py
 RUN DEBUG="true" SECRET_KEY="dummydummydummydummydummydummydummydummydummydummy" /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input
 ```
 
-**Warum im Dockerfile?** Der NetBox-Container läuft als unprivilegierter Benutzer. Ein späteres
-`docker compose exec netbox … collectstatic` scheitert deshalb mit `PermissionError`, und der Editor findet
-`canvas.js` nicht. Beim Bauen des Images gibt es dieses Problem nicht. So empfiehlt es auch das netbox-docker-Wiki.
+**Warum im Dockerfile?** Was `collectstatic` im laufenden Container kopiert, geht verloren, sobald der Container
+neu erstellt wird (zum Beispiel bei jedem Update). Außerdem läuft der Container als unprivilegierter Benutzer, ein
+späteres `docker compose exec netbox … collectstatic` scheitert deshalb mit `PermissionError`. Beim Bauen des Images
+landen die Dateien dauerhaft im Image.
+
+**Warum die `COPY`-Zeilen?** `collectstatic` sammelt nur die Dateien der Plugins, die in `PLUGINS` stehen. netbox-docker
+hängt `configuration/` aber erst beim Start des Containers ein. Ohne die beiden Zeilen sieht `collectstatic` beim
+Bauen eine leere Plugin-Liste, und der Editor bleibt bei „Lade Canvas…“ stehen. So steht es auch im netbox-docker-Wiki.
 
 ## 4. Aktivieren: `configuration/plugins.py`
 
@@ -108,7 +117,7 @@ PLUGINS_CONFIG = {
 ```bash
 docker compose build --no-cache
 docker compose up -d
-docker compose logs -f netbox      # warten bis "Listening at" / keine Tracebacks, dann Strg+C
+docker compose logs -f netbox      # warten, bis keine Migrationen mehr laufen und keine Tracebacks kommen, dann Strg+C
 ```
 
 Der Container führt beim Start automatisch die Datenbank-Migrationen aus. Nur zur Kontrolle:
@@ -195,7 +204,8 @@ Core-Daten wie Devices, VMs und Services bleiben unangetastet. Das Plugin änder
 
 | Symptom | Ursache / Lösung |
 |---|---|
-| Editor bleibt bei „Loading canvas…“ / „Lade Canvas…“ stehen; Browser-Konsole zeigt 404 für `canvas.js` oder „MIME type ("") blocked“; `collectstatic` bricht mit `PermissionError` ab | Die Static-Dateien fehlen. Die `collectstatic`-Zeile in `Dockerfile-Plugins` ergänzen (Schritt 3) und neu bauen. Von Hand nur als root: `docker compose exec -u root netbox /opt/netbox/netbox/manage.py collectstatic --no-input`. Danach Strg+F5. |
+| Editor bleibt bei „Loading canvas…“ / „Lade Canvas…“ stehen; Browser-Konsole zeigt 404 für `canvas.js` oder „MIME type ("") blocked“ | Die Static-Dateien fehlen. Die beiden `COPY`-Zeilen und die `collectstatic`-Zeile in `Dockerfile-Plugins` ergänzen (Schritt 3) und neu bauen. Prüfen: `docker compose exec netbox ls /opt/netbox/netbox/static/netbox_service_canvas/dist/`. `collectstatic` von Hand als root hilft nur bis zum nächsten Neuerstellen des Containers. Danach Strg+F5. |
+| `collectstatic` von Hand bricht mit `Device or resource busy` ab | Eine Datei ist in den Static-Ordner gemountet (zum Beispiel ein eigenes Logo). Die Lösung über `Dockerfile-Plugins` nutzen, oder vorübergehend `collectstatic --no-input --ignore "netbox_logo_*"`. |
 | Editor sieht nach einem Update alt aus | Browser-Cache: Strg+F5. |
 | `ModuleNotFoundError: netbox_service_canvas` | Image nicht neu gebaut, oder die Zeile fehlt in `plugin_requirements.txt`. |
 | `ImproperlyConfigured … requires NetBox …` | NetBox-Version ist älter als 4.5 oder neuer als 4.7 (siehe Warnung oben). |

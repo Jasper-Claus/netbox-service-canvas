@@ -1,3 +1,5 @@
+> **Archiv:** ursprünglicher Implementierungsplan (gegen NetBox 4.5.7). Den aktuellen Stand beschreiben README, CHANGELOG und CONTRIBUTING.
+
 # Implementierungsplan – netbox-service-canvas
 
 Stand: Recherche gegen NetBox **v4.5.7** (Tag `d0651f6`), netbox-branching, netbox-topology-views, netbox-docker.

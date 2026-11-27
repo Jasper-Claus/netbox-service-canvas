@@ -34,8 +34,9 @@ The analysis only uses relations that are documented in NetBox and drawn on the 
 This continues step by step: if A → B → C and C fails, both B and A are marked. Bidirectional connections count in
 both directions. Disabled connections are ignored; planned ones count.
 
-**Hops** count too: if a connection runs through a hop (for example a reverse proxy or a tunnel) and the hop fails,
-the source of the connection is marked as affected.
+**Hops** count too: if a connection runs through a hop (for example a router, a firewall or a tunnel) and the hop
+fails, the connection breaks. For a normal connection the source is marked as affected; for a proxy connection the
+target is marked as unreachable.
 
 **Yellow** follows connections of kind **Proxy** in their direction. Set the kind when drawing a line or later in the
 connection panel:

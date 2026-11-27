@@ -95,7 +95,8 @@ docker compose exec -T netbox /opt/netbox/netbox/manage.py nbshell < ~/netbox-se
 1. Fork the repository and create a branch.
 2. Make your change. Add or adjust tests in `netbox_service_canvas/tests/` or `frontend/src/*.test.ts`.
 3. Frontend changes: run `npm run build` and commit the updated `dist/` files.
-4. New model fields: `manage.py makemigrations netbox_service_canvas`.
+4. New model fields: `manage.py makemigrations netbox_service_canvas`, run against NetBox 4.5 (the oldest supported
+   version; on 4.7 Django would also add an unwanted change to the inherited `owner` field).
 5. Add an entry to `CHANGELOG.md` under *Unreleased*.
 6. Open the pull request and describe what changes for users.
 
@@ -105,7 +106,8 @@ UI texts are written in English and passed through `t()`. Add the German transla
 ## Releases (maintainers)
 
 1. `npm run build` in `frontend/` and commit `dist/`.
-2. Raise the version in `pyproject.toml` and `netbox_service_canvas/__init__.py`, update `CHANGELOG.md`.
+2. Raise the version in `pyproject.toml` and `netbox_service_canvas/__init__.py` (CI checks that both match),
+   update `CHANGELOG.md`.
 3. Create a GitHub release with the tag `vX.Y.Z`. The workflow `publish.yml` builds the package and publishes it to
    PyPI.
 

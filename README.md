@@ -47,10 +47,13 @@ there, read [No plugins installed yet?](#no-plugins-installed-yet) first.
    netbox-service-canvas
    ```
 
-2. Open `Dockerfile-Plugins` and make sure it ends with this line. It copies the editor's JavaScript and CSS into
-   NetBox while the image is built:
+2. Open `Dockerfile-Plugins` and make sure it ends with these three lines. They copy the editor's JavaScript and
+   CSS into NetBox while the image is built. The two `COPY` lines are needed because NetBox only collects the files of
+   plugins listed in `plugins.py`, and netbox-docker mounts that file only when the container starts:
 
    ```dockerfile
+   COPY configuration/configuration.py /etc/netbox/config/configuration.py
+   COPY configuration/plugins.py /etc/netbox/config/plugins.py
    RUN DEBUG="true" SECRET_KEY="dummydummydummydummydummydummydummydummydummydummy" /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input
    ```
 
@@ -94,6 +97,8 @@ FROM netboxcommunity/netbox:v4.7
 COPY ./plugin_requirements.txt /opt/netbox/
 RUN /usr/local/bin/uv pip install -r /opt/netbox/plugin_requirements.txt
 
+COPY configuration/configuration.py /etc/netbox/config/configuration.py
+COPY configuration/plugins.py /etc/netbox/config/plugins.py
 RUN DEBUG="true" SECRET_KEY="dummydummydummydummydummydummydummydummydummydummy" /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input
 ```
 
@@ -179,7 +184,7 @@ A German step-by-step guide with backup and restore is in
 
 | Symptom | Cause and fix |
 |---|---|
-| The editor stays at "Loading canvas…". The browser console shows a 404 for `canvas.js` or "MIME type ("") blocked". `collectstatic` fails with `PermissionError`. | The static files were not collected. Add the `collectstatic` line to `Dockerfile-Plugins` (step 2) and rebuild. To run it by hand in netbox-docker, run it as root: `docker compose exec -u root netbox /opt/netbox/netbox/manage.py collectstatic --no-input`. Then reload with Ctrl+F5. |
+| The editor stays at "Loading canvas…". The browser console shows a 404 for `canvas.js` or "MIME type ("") blocked". | The static files were not collected. Add the two `COPY` lines and the `collectstatic` line to `Dockerfile-Plugins` (step 2) and rebuild. Running `collectstatic` by hand (`docker compose exec -u root netbox /opt/netbox/netbox/manage.py collectstatic --no-input`) only helps until the container is recreated, and fails if files such as a logo are mounted into the static folder. Then reload with Ctrl+F5. |
 | NetBox does not start: `ImproperlyConfigured … requires NetBox …` | The NetBox version is older than 4.5 or newer than 4.7. See the warning above. |
 | `ModuleNotFoundError: No module named 'netbox_service_canvas'` | The image was not rebuilt, or the package line is missing from `plugin_requirements.txt`. |
 | 403 when saving | The user lacks a permission. The editor names the missing one. See [Permissions](#permissions). |
@@ -232,8 +237,8 @@ several canvases. If an object is deleted in NetBox, it disappears from every ca
 
 - **Impact analysis** for any node, colour-coded on the canvas:
   - **fails with it** (red): services and VMs running on the failed host,
-  - **affected** (orange): everything that depends on one of them,
-  - **unreachable** (yellow): everything behind a failed proxy or hop, or behind a switch that was its only cable.
+  - **affected** (orange): everything that depends on one of them, or whose connection runs through a failed hop,
+  - **unreachable** (yellow): everything behind a failed proxy, or behind a switch that was its only cable.
 - Everything comes from the documentation in NetBox. Nothing is pinged or measured, see
   [What this is not](#what-this-is-not).
 
@@ -318,11 +323,11 @@ The code, tests and documentation of this plugin were written by AI ([Claude](ht
 I contributed the idea and requirements, tested it in my homelab and gave feedback. Issues and pull requests are
 welcome.
 
-How it is kept maintainable: every change runs the Django tests against NetBox 4.5, 4.6 and 4.7 and the frontend tests in CI,
-dependencies are updated through Dependabot, security reports go through
-[SECURITY.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/SECURITY.md), and every release is
-listed in the changelog. The plugin only uses NetBox's own models, permissions and change log, so it does not touch
-NetBox core.
+How it is kept maintainable: every change runs the Django tests against NetBox 4.5, 4.6 and 4.7 and the frontend tests
+in CI, dependencies are updated through Dependabot, security reports go through
+[SECURITY.md](https://github.com/Jasper-Claus/netbox-service-canvas/blob/main/SECURITY.md), and every release is listed
+in the changelog. The plugin only uses NetBox's own models, permissions and change log, so it does not touch NetBox
+core.
 
 ## License
 

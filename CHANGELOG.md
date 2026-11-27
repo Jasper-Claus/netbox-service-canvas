@@ -5,6 +5,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.1] – 2026-11-28
+
+### Fixed
+- The plugin reported version 0.4.0 in NetBox (*Admin → Plugins*) although 0.5.0 was installed. CI now checks that
+  `__init__.py` and `pyproject.toml` agree.
+- Installation docs for netbox-docker: `Dockerfile-Plugins` must copy `configuration.py` and `plugins.py` before
+  `collectstatic`. Without them the editor's files are not collected and the editor stays at "Loading canvas…".
+  README, German README, install guide and FAQ are corrected.
+- Docs: hops in the impact analysis mark the source as affected (orange), not unreachable; SECURITY.md lists which
+  versions get fixes more clearly; wiki pages no longer say "NetBox 4.5 only"; the issue form no longer links to the
+  disabled Discussions.
+
 ## [0.5.0] – 2026-11-27
 
 ### Added
@@ -117,7 +129,8 @@ possible, and the test suite is fully green again.
 - Initial release: `ServiceConnection`, `ConnectionHop`, canvases with groups and nodes, interactive editor (drag &
   drop, edge drawing, auto layout, autosave, PNG/SVG export), REST API, GraphQL and NetBox UI integration.
 
-[Unreleased]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Jasper-Claus/netbox-service-canvas/compare/v0.2.0...v0.3.0

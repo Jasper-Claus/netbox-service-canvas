@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: 💬 Questions & show-and-tell
-    url: https://github.com/Jasper-Claus/netbox-service-canvas/discussions
-    about: Share your canvas, ask how to model something, or just say hi.
+  - name: 📖 Wiki and FAQ
+    url: https://github.com/Jasper-Claus/netbox-service-canvas/wiki/FAQ
+    about: Installation problems and common questions are answered here.

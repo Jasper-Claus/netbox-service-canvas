@@ -10,7 +10,7 @@ body:
     attributes:
       label: Versions
       description: NetBox version, plugin version, install method (netbox-docker / plain)
-      placeholder: NetBox 4.5.7, netbox-service-canvas 0.2.0, netbox-docker 4.0.2
+      placeholder: NetBox 4.7.6, netbox-service-canvas 0.5.1, netbox-docker 5.1.2
     validations:
       required: true
   - type: textarea

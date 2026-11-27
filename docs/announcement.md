@@ -1,3 +1,5 @@
+> **Archived:** announcement texts for version 0.3.0 (November 2026), kept for reference. Current NetBox support: 4.5 to 4.7, see the README.
+
 # Beitragstexte zum Teilen
 
 Vorlagen zum Kopieren. Immer `docs/images/demo.gif` direkt hochladen (nicht nur verlinken): Bewegtbild im Feed holt

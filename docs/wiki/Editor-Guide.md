@@ -49,7 +49,8 @@ Click a node to open the **node panel**:
 
 - details and the node's connections on this canvas; for devices also their **cables** (own interface → other
   device and port; click to jump to the other device, the icon opens the cable in NetBox),
-- **Quick edit** for services and applications (applications: also the **icon**),
+- **Quick edit** for services and applications (applications: also the **icon**; services with several protocols,
+  possible from NetBox 4.7, can only be renamed here, their ports are edited in NetBox),
 - **Open in NetBox** and **Edit all fields** (the NetBox form; afterwards you return to the editor),
 - **Impact analysis** (see [[Impact Analysis]]),
 - **Remove from this canvas**.

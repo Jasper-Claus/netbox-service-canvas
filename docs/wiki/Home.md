@@ -2,8 +2,8 @@
 
 ![NetBox Service Canvas](https://raw.githubusercontent.com/Jasper-Claus/netbox-service-canvas/main/docs/images/editor.png)
 
-**NetBox Service Canvas** is a plugin for NetBox 4.5. It shows on an interactive canvas which services run where, how
-they talk to each other and what breaks if a host fails. The canvas is built from NetBox data.
+**NetBox Service Canvas** is a plugin for NetBox 4.5 to 4.7. It shows on an interactive canvas which services run where,
+how they talk to each other and what breaks if a host fails. The canvas is built from NetBox data.
 
 ## Pages
 

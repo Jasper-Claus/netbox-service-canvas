@@ -1,3 +1,5 @@
+> **Archiv:** Aufgabenliste aus der ersten Entwicklungsphase (bis 0.2.0). Offene Punkte stehen heute in den GitHub-Issues.
+
 # TODO – netbox-service-canvas
 
 **Stand 2026-11-25:** Phasen 1–6 als Code fertig, dazu Phase 7 (Applications, Notizen, Impact-Analyse, Knoten-Panel, A4-PDF, Changelog-Fix) · lokal geprüft: Lint, Imports, URLs, Templates, Static, `manage.py check`, `makemigrations --check`, GraphQL, Vitest (21/21), Frontend-Build · **Django-Tests noch nicht ausgeführt** (laufen auf der Ubuntu-VM) · offen: Gruppen-Autobefüllung (Cluster/Site/Tag), Services im Parent-Container, Screenshots, Kompatibilitäts-Check auf rick

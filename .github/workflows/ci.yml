@@ -44,6 +44,12 @@ jobs:
       - run: pip install ruff
       - run: ruff check netbox_service_canvas --select E,F
       - run: python -m compileall -q netbox_service_canvas
+      - name: Plugin version matches pyproject.toml
+        run: |
+          a=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          b=$(sed -n "s/^__version__ = '\(.*\)'/\1/p" netbox_service_canvas/__init__.py)
+          echo "pyproject.toml: $a, __init__.py: $b"
+          [ "$a" = "$b" ] || { echo "::error::Version mismatch: pyproject.toml $a, __init__.py $b"; exit 1; }
 
   netbox:
     name: Django tests (NetBox ${{ matrix.netbox }})

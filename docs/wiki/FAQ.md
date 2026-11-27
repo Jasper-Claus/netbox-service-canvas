@@ -4,19 +4,22 @@
 
 ### The editor stays at "Loading canvas…".
 The static files (JavaScript and CSS) were not collected. Typical signs in the browser console: a 404 for
-`canvas.js` or "MIME type ("") blocked". In netbox-docker, add the `collectstatic` line to `Dockerfile-Plugins` and
-rebuild the image, as described in the
+`canvas.js` or "MIME type ("") blocked". In netbox-docker, add the two `COPY` lines and the `collectstatic` line to
+`Dockerfile-Plugins` and rebuild the image, as described in the
 [README](https://github.com/Jasper-Claus/netbox-service-canvas#installation). Then reload with Ctrl+F5.
 
 ### `collectstatic` fails with `PermissionError`.
 The NetBox container runs as an unprivileged user and may not write to the static folder. Run `collectstatic` while
 the image is built (see above), or run it by hand as root:
-`docker compose exec -u root netbox /opt/netbox/netbox/manage.py collectstatic --no-input`.
+`docker compose exec -u root netbox /opt/netbox/netbox/manage.py collectstatic --no-input`. Files collected by hand
+are lost when the container is recreated, for example on the next update, so the `Dockerfile-Plugins` way is the
+lasting fix. If you mount your own logo into the static folder, the manual run stops with "Device or resource busy";
+add `--ignore "netbox_logo_*"` in that case.
 In a dev setup with `DEBUG = True` and `runserver`, static files are served directly and `collectstatic` is not
 needed.
 
 ### NetBox does not start after a NetBox upgrade.
-The plugin supports NetBox 4.5.x only. On another minor version NetBox refuses to start while the plugin is
+The plugin supports NetBox 4.5, 4.6 and 4.7. On another minor version NetBox refuses to start while the plugin is
 enabled. Install a plugin release that supports your NetBox version, or remove `netbox_service_canvas` from
 `PLUGINS`.
 

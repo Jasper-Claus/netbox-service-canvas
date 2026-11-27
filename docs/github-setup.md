@@ -1,31 +1,20 @@
 # GitHub-Repo: Checkliste für den Maintainer
 
-Diese Datei listet alles, was sich nicht über Dateien im Repo einstellen lässt. Repo, PyPI und die Releases v0.2.0
-und v0.3.0 gibt es schon. Offen ist Version 0.4.0 (biegbare Linien, Proxy, Kabel-Ebene, Suche, App-Symbole).
+Diese Datei listet alles, was sich nicht über Dateien im Repo einstellen lässt. Repo, PyPI, Sicherheits-Einstellungen
+(Private vulnerability reporting, Dependabot, CodeQL) und die Releases bis v0.5.0 sind erledigt.
 
-## ✅ Jetzt noch zu tun für v0.4.0 (in dieser Reihenfolge)
+## So läuft ein Release
 
-- [ ] **1. Django-Tests auf der Dev laufen lassen** (alle grün?):
-      `docker compose exec netbox /opt/netbox/netbox/manage.py test netbox_service_canvas --keepdb`
-- [ ] **2. Branch nach `main` mergen und pushen.** Danach unter **Actions** prüfen, dass *CI* komplett grün ist. Die
-      Django-Tests blockieren jetzt, ein roter Test hält also das Badge rot.
-- [ ] **3. Sicherheit einschalten** (Settings → *Code security*, alles einmalig):
-  - *Private vulnerability reporting* → **Enable** (dafür verlinkt `SECURITY.md` auf „Report a vulnerability“)
-  - *Dependabot alerts* → **Enable**
-  - *Dependabot security updates* → **Enable**
-  - *Code scanning / CodeQL* → **Set up → Default** (optional, prüft Python und TypeScript auf Sicherheitslücken)
-- [ ] **4. Release v0.4.0 erstellen** ([Abschnitt 5](#5-release-v040)) und unter **Actions** prüfen, dass
-      *Publish to PyPI* grün ist.
-- [ ] **5. Produktion aktualisieren:** Backup, `netbox-service-canvas==0.4.0` in `plugin_requirements.txt`,
-      `docker compose build --no-cache`, `docker compose up -d` (Migration `0003` läuft automatisch), Strg+F5.
-- [ ] **6. Wiki aktualisieren** ([Abschnitt 6](#6-wiki)): Editor-Guide und Impact-Analysis haben neue Abschnitte.
-- [ ] **7. Auf Reddit antworten** (optional): Hinweis auf 0.4.0, *What this is not* im README, `SECURITY.md` und die
-      grüne CI. Das beantwortet die Fragen nach Monitoring und Wartung.
+1. Änderungen auf `main`, CI unter **Actions** komplett grün.
+2. Version in `pyproject.toml` **und** `netbox_service_canvas/__init__.py` erhöhen (die CI prüft, dass beide gleich
+   sind), `CHANGELOG.md` und `docs/release-notes-X.Y.Z.md` schreiben.
+3. Taggen und Release erstellen ([Abschnitt 5](#5-release)), danach prüfen, dass *Publish to PyPI* grün ist.
+4. Wiki aktualisieren, falls sich Seiten in `docs/wiki/` geändert haben ([Abschnitt 6](#6-wiki)).
 
-Was Dependabot danach macht: einmal pro Woche (Frontend) bzw. pro Monat (GitHub Actions, Python) einen Pull Request
-mit Updates, gebündelt. Die CI läuft darauf automatisch. Ist sie grün, kannst du mergen; das gebaute Frontend
-(`dist/`) muss danach einmal mit `npm run build` neu erzeugt und committet werden, wenn sich Frontend-Pakete geändert
-haben.
+Dependabot öffnet einmal pro Woche (Frontend) bzw. pro Monat (GitHub Actions, Python) gebündelte Pull Requests mit
+kleinen Updates; große Versionssprünge im Frontend schlägt es nicht vor, Sicherheits-Updates kommen immer. Ist die CI
+grün, kannst du mergen. Haben sich Frontend-Pakete geändert, danach einmal `npm run build` in `frontend/` ausführen und
+`dist/` committen.
 
 ---
 
@@ -87,19 +76,19 @@ kein API-Token gespeichert (PyPI *Trusted Publishing*).
 3. Auf GitHub: **Settings → Environments → New environment** → Name `pypi`. Optional *Required reviewers* mit dir
    selbst; dann muss jeder Upload in Actions kurz bestätigt werden.
 
-## 5. Release v0.4.0
+## 5. Release
 
-Die Version in `pyproject.toml` (jetzt `0.4.0`) muss zum Tag passen, sonst bricht der Workflow ab. Erst taggen, wenn
-`main` gepusht und die CI grün ist.
+Die Version in `pyproject.toml` muss zum Tag passen, sonst bricht der Workflow ab. Erst taggen, wenn `main` gepusht
+und die CI grün ist. Beispiel für 0.5.1:
 
 ```powershell
-git tag -a v0.4.0 -m "v0.4.0"
+git tag -a v0.5.1 -m "v0.5.1"
 ```
 ```powershell
-git push origin v0.4.0
+git push origin v0.5.1
 ```
 ```powershell
-gh release create v0.4.0 --title "v0.4.0: Proxy-aware impact analysis, cable layer, bendable lines" --notes-file docs/release-notes-0.4.0.md
+gh release create v0.5.1 --title "v0.5.1: Install docs fix" --notes-file docs/release-notes-0.5.1.md
 ```
 
 Danach läuft *Publish to PyPI* unter **Actions**. Wenn er grün ist, funktioniert `pip install netbox-service-canvas`.
@@ -114,7 +103,7 @@ python -m pip install build twine; python -m build; python -m twine check dist/*
 ## 6. Wiki
 
 Die Wiki-Seiten liegen als Quelle in `docs/wiki/` (Home, Getting Started, Service vs Application, Editor Guide,
-Impact Analysis, Export, FAQ, Sidebar). GitHub legt das Wiki-Repo erst an, wenn die erste Seite im Browser
+Impact Analysis, Export, API, FAQ, Sidebar). GitHub legt das Wiki-Repo erst an, wenn die erste Seite im Browser
 gespeichert wurde:
 
 1. Falls noch nicht geschehen: im Repo auf **Wiki → Create the first page** klicken und einfach speichern.
