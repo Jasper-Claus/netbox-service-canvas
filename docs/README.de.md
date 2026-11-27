@@ -184,9 +184,10 @@ Eine ausführliche Anleitung mit Backup und Wiederherstellung steht in
 3. Devices und VMs aus der Seitenleiste auf die Canvas ziehen, dann **Fehlende ergänzen** klicken, um ihre Services
    zu holen.
 4. Vom Punkt rechts an einem Knoten auf einen anderen Knoten ziehen, um eine Verbindung anzulegen.
-5. Einen Knoten oder eine Verbindung anklicken, um sie zu bearbeiten. **Impact-Analyse** im Knoten-Panel zeigt, was
-   von dem Knoten abhängt.
-6. Die Canvas als PNG, SVG oder A4-PDF exportieren.
+5. Einen Knoten oder eine Verbindung anklicken, um sie zu bearbeiten. Die Art einer Verbindung auf **Proxy** setzen,
+   wenn das Ziel nur über die Quelle erreichbar ist, zum Beispiel ein Service hinter Traefik.
+6. **Impact-Analyse** im Knoten-Panel klicken, um zu sehen, was bei einem Ausfall des Knotens kaputtgeht.
+7. Mit dem Suchfeld in der Werkzeugleiste alles finden und die Canvas als PNG, SVG oder A4-PDF exportieren.
 
 Beziehungen werden als normale NetBox-Daten gespeichert, die Canvas speichert nur das Layout. Dasselbe Objekt kann auf
 mehreren Canvases liegen. Wird ein Objekt in NetBox gelöscht, verschwindet es von allen Canvases.
@@ -195,17 +196,47 @@ mehreren Canvases liegen. Wird ein Objekt in NetBox gelöscht, verschwindet es v
 
 ## Funktionen
 
+### Services abbilden
+
 - **Applications**: ein neues NetBox-Objekt für Software aus einem oder mehreren Services, zum Beispiel Grafana, mit
-  Status, Version und URL.
+  Status, Version, URL und einem von 24 Symbolen (Datenbank, Web, DNS, Backup, Medien, …).
 - **Verbindungen** zwischen Services, Devices, VMs und Applications, mit Richtung, Protokoll, Port, einer
-  Beschreibung der Daten und Status. Jede Verbindung kann **Hops** haben: Zwischenstationen wie Reverse-Proxy, VLAN
-  oder Tunnel.
-- **Canvas-Editor**: Drag & Drop aus einer durchsuchbaren Seitenleiste, Gruppen, Notizen, automatisches Layout,
+  Beschreibung der Daten und Status (aktiv, geplant, …).
+- **Proxy-Verbindungen**: eine Verbindung als *Proxy* markieren, wenn das Ziel nur über die Quelle erreichbar ist,
+  zum Beispiel Traefik → Paperless. Proxy-Ketten wie Traefik → Authelia → Grafana funktionieren auch.
+- **Hops**: Zwischenstationen einer Verbindung, etwa Router, Firewall, VLAN oder Tunnel, in fester Reihenfolge.
+- **„Läuft auf“ aus NetBox**: Services hängen an ihrem Device oder ihrer VM, eine VM mit fest zugeordnetem Device
+  läuft auf diesem. Nichts muss doppelt eingetragen werden.
+
+### Canvas zeichnen
+
+- **Editor**: Drag & Drop aus einer durchsuchbaren Seitenleiste. **Fehlende ergänzen** holt die Services sowie die
+  verkabelten Switches und Router zu dem, was schon auf der Canvas liegt. Gruppen, Notizen, automatisches Layout,
   Minimap und automatisches Speichern.
-- **Impact-Analyse**: zeigt, was zusammen mit einem Host ausfällt und was von ihm abhängt.
+- **Biegbare, farbige Linien**: die +-Punkte einer ausgewählten Linie ziehen, um sie um andere Knoten herumzuführen,
+  und pro Linie und Canvas eine Farbe wählen.
+- **Kabel-Ebene**: die in NetBox dokumentierten Kabel werden zwischen Devices gezeichnet, mit den Interface-Namen als
+  Beschriftung. Wege über Patchpanels zählen als eine Verbindung. In der Werkzeugleiste ein- und ausschaltbar.
+- **Suche** in der Werkzeugleiste: ein Objekt nach Name, Host, IP oder Port finden und hinspringen.
+- **Knoten-Panel**: Details, Verbindungen und Kabel des ausgewählten Objekts, Schnell-Bearbeiten für Services und
+  Applications, Links zu den NetBox-Seiten.
+
+### „Was, wenn das ausfällt?“
+
+- **Impact-Analyse** für jeden Knoten, farbig auf der Canvas:
+  - **fällt mit aus** (rot): Services und VMs auf dem ausgefallenen Host,
+  - **abhängig betroffen** (orange): alles, was einen davon braucht,
+  - **nicht erreichbar** (gelb): alles hinter einem ausgefallenen Proxy oder Hop, oder hinter einem Switch, an dem es
+    als einziges Kabel hing.
+- Alles stammt aus der Dokumentation in NetBox. Nichts wird angepingt oder gemessen, siehe
+  [Was es nicht ist](#was-es-nicht-ist).
+
+### Teilen und in NetBox bleiben
+
 - **Export** als PNG, SVG oder druckfertiges A4-PDF mit Titel, Datum und Legende.
-- **In NetBox integriert**: Listen, Filter, CSV-Import, Suche, REST-API, GraphQL und Changelog für alle Objekte.
-  Device-, VM-, Service- und Application-Seiten bekommen einen Tab *Connections* und einen Button *Show on canvas*.
+- **In NetBox integriert**: Listen, Filter, CSV-Import, globale Suche, REST-API, GraphQL und Changelog für alle
+  Objekte. Device-, VM-, Service- und Application-Seiten bekommen einen Tab *Connections* und einen Button *Show on
+  canvas*.
 - **Folgt NetBox**: Berechtigungen, helles und dunkles Theme, Deutsch oder Englisch je nach NetBox-Sprache.
 - **Funktioniert offline**: keine CDNs, keine externen Anfragen. Das Frontend ist im Plugin enthalten.
 
@@ -258,10 +289,26 @@ Benutzer ohne Änderungsrecht sehen die Canvas im Modus „Nur Ansicht“.
 NetBox dokumentiert mein Homelab bis zu jedem Kabel und jeder IP, zeigt aber nicht, welcher Service auf welchem Host
 läuft und wer mit wem spricht. Dieses Plugin ergänzt diese Service-Ebene.
 
+## Was es nicht ist
+
+- **Kein Monitoring.** Nichts wird angepingt, abgefragt oder gemessen. Die Canvas zeigt, was in NetBox dokumentiert
+  ist, und die Impact-Analyse beantwortet „Was, wenn das ausfällt?“ aus dieser Dokumentation. Der Live-Zustand gehört
+  ins Monitoring (Uptime Kuma, Zabbix, Prometheus, …).
+- **Keine Discovery.** Das Plugin scannt nicht das Netz und importiert nichts automatisch. Dafür gibt es eigene
+  Werkzeuge (Diode, Orb, NAPALM, …), die NetBox befüllen.
+- **Kein weiteres Netzwerkdiagramm.** Topologie-Plugins zeichnen Kabel und Geräte. Dieses Plugin ergänzt darüber die
+  Service-Ebene: welcher Service wo läuft, wer mit wem spricht, über welchen Proxy, und was kaputtgeht. Die Kabel
+  sind nur eine optionale Ebene für die Impact-Analyse.
+
 ## Mit KI gebaut
 
 Code, Tests und Dokumentation dieses Plugins hat eine KI geschrieben ([Claude](https://claude.ai) über Claude Code).
 Von mir kamen Idee und Anforderungen, Tests im Homelab und Feedback. Issues und Pull Requests sind willkommen.
+
+So bleibt es wartbar: Jede Änderung durchläuft in der CI die Django-Tests gegen NetBox 4.5 und die Frontend-Tests,
+Abhängigkeiten werden über Dependabot aktualisiert, Sicherheitsmeldungen laufen über [SECURITY.md](../SECURITY.md),
+und jede Version steht im Changelog. Das Plugin nutzt nur NetBox' eigene Modelle, Berechtigungen und den Changelog
+und greift nicht in den NetBox-Core ein.
 
 ## Lizenz
 

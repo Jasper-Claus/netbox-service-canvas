@@ -192,8 +192,10 @@ A German step-by-step guide with backup and restore is in
 2. Open the *Editor* tab.
 3. Drag devices and VMs from the sidebar onto the canvas, then click **Add missing** to pull in their services.
 4. Drag from the dot on the right of a node to another node to create a connection.
-5. Click a node or a connection to edit it. **Impact analysis** in the node panel shows what depends on the node.
-6. Export the canvas as PNG, SVG or an A4 PDF.
+5. Click a node or a connection to edit it. Set the connection's kind to **Proxy** if the target is only reachable
+   through the source, for example a service behind Traefik.
+6. Click **Impact analysis** in the node panel to see what breaks if the node fails.
+7. Find anything with the search field in the toolbar, and export the canvas as PNG, SVG or an A4 PDF.
 
 Relationships are stored as normal NetBox data, the canvas only stores the layout. The same object can appear on
 several canvases. If an object is deleted in NetBox, it disappears from every canvas.
@@ -202,20 +204,44 @@ several canvases. If an object is deleted in NetBox, it disappears from every ca
 
 ## Features
 
+### Model your services
+
 - **Applications**: a new NetBox object for software made of one or more services, for example Grafana, with status,
-  version and URL.
+  version, URL and one of 24 icons (database, web, DNS, backup, media, …).
 - **Connections** between services, devices, VMs and applications, with direction, protocol, port, a description of
-  the data and status. Each connection can have **hops**: intermediate stations such as a reverse proxy, VLAN or
-  tunnel. Mark a connection as **proxy** when the target is only reachable through the source.
-- **Canvas editor**: drag and drop from a searchable sidebar, groups, sticky notes, automatic layout, minimap and
-  autosave. Lines can be bent and coloured, applications get their own icon.
-- **Impact analysis**: shows what fails together with a host, what depends on it and what is no longer reachable
-  behind a failed reverse proxy.
-- **Physical layer**: the cables documented in NetBox between devices, switches and routers, toggleable and part of
-  the impact analysis.
+  the data and status (active, planned, …).
+- **Proxy connections**: mark a connection as *Proxy* when the target is only reachable through the source, for
+  example Traefik → Paperless. Proxy chains such as Traefik → Authelia → Grafana work too.
+- **Hops**: intermediate stations of a connection, such as a router, firewall, VLAN or tunnel, in a fixed order.
+- **"Runs on" from NetBox**: services sit on their device or VM, and a VM pinned to a device runs on it. Nothing has
+  to be entered twice.
+
+### Draw the canvas
+
+- **Editor**: drag and drop from a searchable sidebar. **Add missing** pulls in the services and the cabled switches
+  and routers of what is already on the canvas. Groups, sticky notes, automatic layout, minimap and autosave.
+- **Bendable, colourable lines**: drag the + points of a selected line to route it around other nodes, and pick a
+  colour per line and canvas.
+- **Physical layer**: the cables documented in NetBox are drawn between devices, with the interface names as label.
+  Paths through patch panels count as one link. Toggle it in the toolbar.
+- **Search** in the toolbar: find an object by name, host, IP or port and jump to it.
+- **Node panel**: details, connections and cables of the selected object, quick edit for services and applications,
+  links to the NetBox pages.
+
+### Ask "what if this fails?"
+
+- **Impact analysis** for any node, colour-coded on the canvas:
+  - **fails with it** (red): services and VMs running on the failed host,
+  - **affected** (orange): everything that depends on one of them,
+  - **unreachable** (yellow): everything behind a failed proxy or hop, or behind a switch that was its only cable.
+- Everything comes from the documentation in NetBox. Nothing is pinged or measured, see
+  [What this is not](#what-this-is-not).
+
+### Share it and stay in NetBox
+
 - **Export** as PNG, SVG or a printable A4 PDF with title, date and legend.
-- **Integrated into NetBox**: lists, filters, CSV import, search, REST API, GraphQL and change log for all objects.
-  Device, VM, service and application pages get a *Connections* tab and a *Show on canvas* button.
+- **Integrated into NetBox**: lists, filters, CSV import, global search, REST API, GraphQL and change log for all
+  objects. Device, VM, service and application pages get a *Connections* tab and a *Show on canvas* button.
 - **Follows NetBox**: permissions, light and dark theme, English or German depending on the NetBox language.
 - **Works offline**: no CDNs, no external requests. The frontend is bundled with the plugin.
 
