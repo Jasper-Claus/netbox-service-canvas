@@ -9,6 +9,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    # Major versions (vite, React Flow, TypeScript, …) need real migration work and are done by hand.
+    # Security updates are not affected by this and still arrive for every version.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       frontend-minor-and-patch:
         update-types: [minor, patch]
