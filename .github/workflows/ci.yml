@@ -113,7 +113,8 @@ jobs:
               echo "::warning::No query count baseline yet, recording it (download the artifact and commit it)."
               export UPDATE_QUERY_COUNTS=1
             elif [ "${{ matrix.netbox }}" != "4.7" ]; then
-              export SKIP_QUERY_COUNTS=1
+              # Record instead of compare (4.6 has no SKIP_QUERY_COUNTS); the recorded file is not committed
+              export UPDATE_QUERY_COUNTS=1
             fi
           fi
           python netbox/netbox/manage.py test netbox_service_canvas -v 2

@@ -81,7 +81,7 @@ NetBox 4.6 and newer compare list views and API lists against stored query count
 `netbox_service_canvas/tests/query_counts.json`. The file is recorded against NetBox 4.7 and only checked there
 (the counts differ by one query on 4.6). If a change alters them on purpose, re-record it on 4.7 with
 `UPDATE_QUERY_COUNTS=1 python manage.py test netbox_service_canvas` (serially, no `--parallel`) and commit it. On
-other versions, run the tests with `SKIP_QUERY_COUNTS=1`.
+other versions, run the tests with `UPDATE_QUERY_COUNTS=1` and do not commit the changed file.
 
 Test data for trying things out by hand: `dev/test_scenario.py` creates the canvas "Testlabor" (reverse proxy chain,
 hops, switch with cables, application icons):
