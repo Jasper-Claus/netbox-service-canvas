@@ -14,6 +14,7 @@ from dcim.models import Device, Interface
 from ipam.models import Service
 from virtualization.models import VirtualMachine
 
+from .compat import service_ports
 from .constants import CANVAS_NODE_TYPES
 from .models import Application, ServiceConnection
 
@@ -97,10 +98,13 @@ def describe(obj, label=None):
         parent_label = obj.parent_object_type.app_label + '.' + obj.parent_object_type.model
         data['status'] = _status(parent) if parent is not None else None  # services inherit the parent's status
         data['subtitle'] = str(parent) if parent is not None else ''
+        ports = service_ports(obj)  # NetBox 4.7 stores port_mappings, older versions protocol/ports
         data['service'] = {
-            'protocol': obj.protocol,
-            'protocol_label': str(obj.get_protocol_display()),
-            'ports': list(obj.ports),
+            'protocol': ports['protocol'],
+            'protocol_label': ports['protocol_label'],
+            'ports': ports['ports'],
+            'ports_label': ports['label'],
+            'multi_protocol': ports['multi_protocol'],
             'parent_key': make_key(parent_label, obj.parent_object_id),
             'parent_type': parent_label,
             'parent_name': str(parent) if parent is not None else '',

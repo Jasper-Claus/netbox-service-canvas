@@ -51,8 +51,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # v4.5.7: the version the plugin is tested with by hand; newest: the latest 4.5.x release
-        netbox: ["v4.5.7", "newest"]
+        # The oldest supported release and the newest release of every supported minor version
+        netbox: ["v4.5.7", "4.5", "4.6", "4.7"]
     services:
       postgres:
         image: postgres:17
@@ -80,9 +80,10 @@ jobs:
       - name: Check out NetBox
         run: |
           tag="${{ matrix.netbox }}"
-          if [ "$tag" = newest ]; then
-            tag=$(git ls-remote --tags --refs https://github.com/netbox-community/netbox 'v4.5.*' | sed 's#.*/##' | sort -V | tail -1)
-          fi
+          case "$tag" in
+            v*) ;;
+            *) tag=$(git ls-remote --tags --refs https://github.com/netbox-community/netbox "v$tag.*" | sed 's#.*/##' | sort -V | tail -1) ;;
+          esac
           echo "Testing against NetBox $tag"
           git clone --depth 1 --branch "$tag" https://github.com/netbox-community/netbox.git netbox
       - name: Install NetBox and the plugin
@@ -99,4 +100,17 @@ jobs:
       - name: Check for missing migrations
         run: python netbox/netbox/manage.py makemigrations netbox_service_canvas --check --dry-run
       - name: Run the plugin's tests
-        run: python netbox/netbox/manage.py test netbox_service_canvas -v 2
+        # NetBox 4.7+ compares list views and API lists against stored query counts (tests/query_counts.json).
+        # Without that file the counts are recorded instead and uploaded, so they can be committed.
+        run: |
+          if [ ! -f plugin/netbox_service_canvas/tests/query_counts.json ] && grep -q UPDATE_QUERY_COUNTS netbox/netbox/utilities/testing/query_counts.py 2>/dev/null; then
+            echo "::warning::No query count baseline yet, recording it (download the artifact and commit it)."
+            export UPDATE_QUERY_COUNTS=1
+          fi
+          python netbox/netbox/manage.py test netbox_service_canvas -v 2
+      - name: Upload recorded query counts
+        if: always() && hashFiles('plugin/netbox_service_canvas/tests/query_counts.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: query-counts-${{ matrix.netbox }}
+          path: plugin/netbox_service_canvas/tests/query_counts.json

@@ -10,6 +10,10 @@ export interface ServiceInfo {
   protocol: string;
   protocol_label: string;
   ports: number[];
+  /** Ready-to-display ports, e.g. "TCP 80, 443" or "TCP 53 · UDP 53" (NetBox 4.7 allows several protocols) */
+  ports_label?: string;
+  /** More than one protocol (NetBox 4.7+): protocol is empty and quick edit leaves the ports alone */
+  multi_protocol?: boolean;
   parent_key: string;
   parent_type: string;
   parent_name: string;

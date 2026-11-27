@@ -149,6 +149,7 @@ export const DE: Record<string, string> = {
   "Service created.": "Service angelegt.",
   "Service on this host": "Service auf diesem Host",
   "Service saved.": "Service gespeichert.",
+  "Several protocols: edit the ports in NetBox.": "Mehrere Protokolle: Ports bitte in NetBox bearbeiten.",
   "Services": "Services",
   "sets the parent of the service": "– setzt den Parent des Services",
   "Show \"runs on\" edges": "„Läuft auf“-Kanten anzeigen",

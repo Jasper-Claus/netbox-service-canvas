@@ -53,13 +53,17 @@ function ServiceEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChanged:
 
   const ports = parsePorts(form.ports);
   const dirty = form.name !== initial.name || form.protocol !== initial.protocol || form.ports !== initial.ports;
-  const valid = form.name.trim() !== '' && ports !== null;
+  const valid = form.name.trim() !== '' && (service.multi_protocol || ports !== null);
 
   const save = async () => {
     setBusy(true);
     setError(null);
     try {
-      await api.updateService(desc.id, { name: form.name.trim(), protocol: form.protocol, ports });
+      // A service with several protocols (NetBox 4.7+) cannot be written in the single-protocol form:
+      // only rename it here, the ports are edited in NetBox.
+      await api.updateService(desc.id, service.multi_protocol
+        ? { name: form.name.trim() }
+        : { name: form.name.trim(), protocol: form.protocol, ports });
       notify(t('Service saved.'), 'success');
       onChanged();
     } catch (e) {
@@ -76,6 +80,11 @@ function ServiceEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChanged:
         <input id="nsc-node-svc-name" className="form-control form-control-sm" value={form.name} maxLength={100}
           onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </div>
+      {service.multi_protocol ? (
+        <p className="small text-muted mb-2">
+          {service.ports_label}<br />{t('Several protocols: edit the ports in NetBox.')}
+        </p>
+      ) : (<>
       <div className="mb-2">
         <span className="form-label small d-block">{t('Protocol')}</span>
         <div className="nsc-segmented nsc-segmented-sm">
@@ -91,6 +100,7 @@ function ServiceEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChanged:
         <input id="nsc-node-svc-ports" className={`form-control form-control-sm${ports ? '' : ' is-invalid'}`} value={form.ports}
           onChange={(e) => setForm({ ...form, ports: e.target.value })} />
       </div>
+      </>)}
       {error && <div className="alert alert-danger py-1 small">{error}</div>}
       <button type="button" className="btn btn-sm btn-primary" disabled={!dirty || !valid} onClick={save}>
         <i className="mdi mdi-content-save-outline" /> {t('Save')}
@@ -284,7 +294,7 @@ export function NodePanel({
               {desc.service && (
                 <>
                   <dt>Ports</dt>
-                  <dd>{desc.service.protocol_label} {desc.service.ports.join(', ')}</dd>
+                  <dd>{desc.service.ports_label || `${desc.service.protocol_label} ${desc.service.ports.join(', ')}`}</dd>
                   <dt>{t('Runs on')}</dt>
                   <dd>{desc.service.parent_name || '–'}</dd>
                 </>
