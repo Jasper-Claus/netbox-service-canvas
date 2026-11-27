@@ -3,6 +3,7 @@ import {
   applySaveResult,
   buildEdges,
   buildNodes,
+  cableLabel,
   computeImpact,
   diffLayout,
   findGroupAt,
@@ -456,5 +457,55 @@ describe('canvas search', () => {
     expect(names('postgres db-vm')).toEqual(['postgres']);
     expect(names('nothing here')).toEqual([]);
     expect(names('   ')).toEqual([]);
+  });
+});
+
+describe('physical layer (cables)', () => {
+  const SW = 'dcim.device:10';
+  const SRV1 = 'dcim.device:11';
+  const SRV2 = 'dcim.device:12';
+  const ROUTER = 'dcim.device:13';
+  const VM = 'virtualization.virtualmachine:5';
+  const SVC = 'ipam.service:20';
+  const APP = 'netbox_service_canvas.application:9';
+  const cable = (source: string, target: string, interfaces: [string, string][] = [['eth0', 'port1']]) => ({
+    id: `cable:${source}-${target}`, source, target, interfaces, cable_ids: [1], active: true, patched: false,
+  });
+  const edges = {
+    runs_on: [
+      { id: 'r1', source: VM, target: SRV1 },
+      { id: 'r2', source: SVC, target: VM },
+    ],
+    part_of: [{ id: 'p1', source: SVC, target: APP }],
+    flows: [],
+    // srv1 only hangs on the switch, srv2 on the switch and the router
+    cables: [cable(SRV1, SW), cable(SRV2, SW), cable(SRV2, ROUTER), cable(SW, ROUTER)],
+  };
+
+  it('labels cables with their interfaces', () => {
+    expect(cableLabel(cable(SRV1, SW))).toBe('eth0 ↔ port1');
+    expect(cableLabel(cable(SRV1, SW, [['eth0', 'port1'], ['eth1', 'port2']]))).toBe('eth0 ↔ port1 +1');
+  });
+
+  it('builds cable edges and hides them on request', () => {
+    const present = new Set([SW, SRV1]);
+    const shown = buildEdges(edges, present, { showRunsOn: true });
+    expect(shown.filter((e) => e.data?.kind === 'cable').map((e) => e.id)).toEqual([`cable:${SRV1}-${SW}`]);
+    const hidden = buildEdges(edges, present, { showRunsOn: true, showCables: false });
+    expect(hidden.some((e) => e.data?.kind === 'cable')).toBe(false);
+  });
+
+  it('makes devices behind a failed switch unreachable, with everything on them', () => {
+    const impact = computeImpact(SW, edges);
+    expect([...impact.unreachable].sort()).toEqual([APP, SRV1, SVC, VM].sort());
+    // srv2 still has a cable to the router, the router to srv2
+    expect(impactRole(impact, SRV2)).toBe('none');
+    expect(impactRole(impact, ROUTER)).toBe('none');
+  });
+
+  it('does not take the switch down when a server fails', () => {
+    const impact = computeImpact(SRV1, edges);
+    expect(impact.unreachable.size).toBe(0);
+    expect([...impact.direct].sort()).toEqual([SVC, VM, APP].sort());
   });
 });

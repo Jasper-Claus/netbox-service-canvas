@@ -47,6 +47,12 @@ If the proxy fails, every target behind it is marked as unreachable, and so are 
 Proxy chains are followed: Traefik → Authelia → Grafana marks both Authelia and Grafana if Traefik fails. Users of an
 unreachable service are not marked, because the service itself still runs.
 
+**Cables** (physical layer, see [[Editor Guide]]) are followed too. A device whose cables on the canvas all lead to
+failed or unreachable devices is marked as unreachable, and so is everything running on it. Example: the switch fails,
+the server that is only cabled to that switch is unreachable, and so are its VMs, services and applications. A server
+with a second cable to another switch stays reachable. A failing server never makes its switch unreachable as long as
+the switch has other cables.
+
 ## Limits
 
 - Only objects and lines on the **current canvas** are analysed. Click **Add missing** first for a complete picture.
@@ -54,5 +60,7 @@ unreachable service are not marked, because the service itself still runs.
   a cluster is not marked, because NetBox does not know which cluster member it runs on.
 - Redundancy is not modelled. If a service is reachable over two paths, it is still marked as affected when one of
   them fails.
-- Power, network cabling and switches are not considered. The canvas shows the service layer, not the physical
-  infrastructure; for that, NetBox's own cable traces or topology plugins are better suited.
+- Cables count only between devices on the canvas, and only complete paths from interface to interface. Power is
+  not considered.
+- Nothing here is measured. The analysis answers "what if?" from what is documented in NetBox; it does not watch
+  your network. Use a monitoring tool for live state.

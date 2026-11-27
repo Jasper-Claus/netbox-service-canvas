@@ -14,7 +14,7 @@ Scenario:
 """
 from django.contrib.contenttypes.models import ContentType
 
-from dcim.models import Device, DeviceRole, DeviceType, Manufacturer, Site
+from dcim.models import Cable, Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
 from ipam.models import Service
 from netbox_service_canvas.models import (
     Application, Canvas, CanvasGroup, CanvasNode, CanvasNote, ConnectionHop, ServiceConnection,
@@ -26,6 +26,7 @@ mf, _ = Manufacturer.objects.get_or_create(name='Generic', slug='generic')
 dt, _ = DeviceType.objects.get_or_create(manufacturer=mf, model='Server', slug='server')
 role_server, _ = DeviceRole.objects.get_or_create(name='Server', slug='server')
 role_router, _ = DeviceRole.objects.get_or_create(name='Router', slug='router')
+role_switch, _ = DeviceRole.objects.get_or_create(name='Switch', slug='switch')
 ct, _ = ClusterType.objects.get_or_create(name='Proxmox', slug='proxmox')
 cluster, _ = Cluster.objects.get_or_create(name='pve-test', type=ct, defaults={'scope': site})
 
@@ -88,11 +89,29 @@ opnsense = device('opnsense', role_router)
 pve1 = device('pve1', in_cluster=True)
 pve2 = device('pve2', in_cluster=True)
 truenas = device('truenas')
+switch = device('switch', role_switch)
 proxy_vm = vm('proxy-vm', pve1)
 docker_vm = vm('docker-vm', pve1)
 db_vm = vm('db-vm', pve1)
 auth_vm = vm('auth-vm', pve2)
 monitoring_vm = vm('monitoring-vm', pve2)
+
+# Physical layer: everything hangs on the switch, pve1 with two links, pve2 additionally directly on opnsense
+
+
+def cable(dev_a, name_a, dev_b, name_b):
+    a, _ = Interface.objects.get_or_create(device=dev_a, name=name_a, defaults={'type': '1000base-t'})
+    b, _ = Interface.objects.get_or_create(device=dev_b, name=name_b, defaults={'type': '1000base-t'})
+    if a.cable_id is None and b.cable_id is None:
+        Cable(a_terminations=[a], b_terminations=[b]).save()
+
+
+cable(opnsense, 'lan', switch, 'port24')
+cable(pve1, 'eth0', switch, 'port1')
+cable(pve1, 'eth1', switch, 'port2')
+cable(pve2, 'eth0', switch, 'port3')
+cable(pve2, 'eth1', opnsense, 'opt1')
+cable(truenas, 'eth0', switch, 'port4')
 
 # Services
 wireguard = service(opnsense, 'wireguard', 51820, 'udp')
@@ -144,7 +163,7 @@ connection(vaultwarden, nfs, 'nfs', 2049, 'Backup', status='planned')
 # Canvas
 canvas, _ = Canvas.objects.get_or_create(name='Testlabor', defaults={'site': site})
 columns = [
-    [opnsense, wireguard, unbound, pve1, pve2],
+    [opnsense, wireguard, unbound, pve1, pve2, switch],
     [proxy_vm, traefik, auth_vm, authelia],
     [docker_vm, paperless, immich, nextcloud, vaultwarden, monitoring_vm, grafana, prometheus],
     apps[:5],
@@ -164,7 +183,8 @@ if not canvas.notes.exists():
         '2. authelia ausfallen lassen: grafana wird gelb (Proxy-Kette)\n'
         '3. opnsense ausfallen lassen: Hops brechen, immich/paperless werden orange\n'
         '4. postgres ausfallen lassen: Apps werden orange\n'
-        '5. Linie anklicken (Bearbeiten an): +-Punkte ziehen, Farbe wählen'
+        '5. switch ausfallen lassen: pve1 und truenas werden gelb, pve2 nicht (2. Kabel)\n'
+        '6. Linie anklicken (Bearbeiten an): +-Punkte ziehen, Farbe wählen'
     ))
 
 if not canvas.groups.exists():

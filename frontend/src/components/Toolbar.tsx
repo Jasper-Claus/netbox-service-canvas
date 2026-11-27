@@ -19,6 +19,8 @@ interface Props {
   onToggleMinimap: () => void;
   showRunsOn: boolean;
   onToggleRunsOn: () => void;
+  showCables: boolean;
+  onToggleCables: () => void;
   sidebar: boolean;
   onToggleSidebar: () => void;
   onAddGroup: () => void;
@@ -98,6 +100,7 @@ export function Toolbar(p: Props) {
         <ToggleButton active={p.snap} onClick={p.onToggleSnap} icon="mdi-grid" title={t('Snap to grid')} />
         <ToggleButton active={p.minimap} onClick={p.onToggleMinimap} icon="mdi-map-outline" title={t('Minimap')} />
         <ToggleButton active={p.showRunsOn} onClick={p.onToggleRunsOn} icon="mdi-link-variant" title={t('Show "runs on" edges')} />
+        <ToggleButton active={p.showCables} onClick={p.onToggleCables} icon="mdi-ethernet-cable" title={t('Show cables (physical layer)')} />
         <button type="button" className="btn btn-sm btn-outline-secondary" onClick={p.onFitView} title={t('Fit view')}>
           <i className="mdi mdi-fit-to-screen-outline" />
         </button>

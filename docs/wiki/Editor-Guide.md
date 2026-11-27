@@ -25,8 +25,8 @@ at the top and the **canvas** in the middle. Clicking a node or a connection ope
 | **Edit** / **View only** | Switch between edit mode and view mode (see below) |
 | **Group** | Add a group frame. Selected nodes go into it. |
 | **Auto layout** | Arrange everything from left to right. Groups stay together. |
-| **Add missing** | Add related objects that are not on the canvas yet: services of hosts, hosts of services, VMs of devices, connection peers |
-| Grid / map / link icons | Snap to grid, minimap, show or hide the "runs on" lines |
+| **Add missing** | Add related objects that are not on the canvas yet: services of hosts, hosts of services, VMs of devices, connection peers, devices cabled to devices on the canvas (switches, routers) |
+| Grid / map / link / cable icons | Snap to grid, minimap, show or hide the "runs on" lines, show or hide the cables (physical layer) |
 | Fit / reload icons | Show the whole canvas, reload from NetBox |
 | **PNG**, **SVG**, **PDF (A4)** | Export, see [[Export]] |
 | Search field | Find an object on this canvas by name, host, IP or port. Enter or a click jumps to it and opens its panel; arrow keys move through the hits, Esc clears. |
@@ -64,6 +64,7 @@ Lines between nodes come in three kinds:
 | Dotted grey | Disabled connection | Service connection |
 | Grey dashed, thin | Runs on: service on its host, VM on its device | The service's host / the VM's *Device* field |
 | Dotted purple | Service belongs to application | The application's services |
+| Thick grey, interface names as label | Cable between two devices (physical layer, dashed if not connected yet) | The cables in NetBox |
 
 Arrows show the direction; the label shows protocol, port and data. Proxy connections are drawn a bit thicker.
 

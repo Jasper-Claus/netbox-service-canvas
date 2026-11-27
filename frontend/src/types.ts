@@ -121,10 +121,25 @@ export interface PartOf {
   target: string; // application key
 }
 
+/** Physical link between two devices, from the cables documented in NetBox (merged per device pair). */
+export interface Cable {
+  id: string;
+  source: string; // device key
+  target: string; // device key
+  /** Interface names at both ends, one pair per link: [source side, target side]. */
+  interfaces: [string, string][];
+  cable_ids: number[];
+  /** All cables of the link are "connected" (not planned or decommissioning). */
+  active: boolean;
+  /** The link runs through patch panels or other pass-through ports. */
+  patched: boolean;
+}
+
 export interface GraphEdges {
   runs_on: RunsOn[];
   part_of: PartOf[];
   flows: Flow[];
+  cables?: Cable[];
 }
 
 export interface GraphResponse {

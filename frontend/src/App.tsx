@@ -151,6 +151,7 @@ function Editor({ config }: { config: EditorConfig }) {
   const [snapToGrid, toggleSnap] = useStoredFlag('nsc:snap', true);
   const [minimap, toggleMinimap] = useStoredFlag('nsc:minimap', true);
   const [showRunsOn, toggleRunsOn] = useStoredFlag('nsc:runs-on', true);
+  const [showCables, toggleCables] = useStoredFlag('nsc:cables', true);
   const [sidebar, toggleSidebar] = useStoredFlag('nsc:sidebar', true);
 
   const savedRef = useRef<Snapshot>({ nodes: {}, groups: {}, notes: {} });
@@ -347,7 +348,7 @@ function Editor({ config }: { config: EditorConfig }) {
   );
 
   const edges = useMemo(() => {
-    const list = buildEdges(graphEdges, placedKeys, { showRunsOn }, edgeStyles);
+    const list = buildEdges(graphEdges, placedKeys, { showRunsOn, showCables }, edgeStyles);
     const failed = impact ? new Set([impact.root, ...impact.direct]) : null;
     return list.map((e) => {
       let edge = e;
@@ -355,14 +356,17 @@ function Editor({ config }: { config: EditorConfig }) {
         edge = { ...edge, selected: true, className: `${edge.className} nsc-edge-selected` };
       }
       if (impact && failed) {
+        const down = (k: string) => failed.has(k) || impact.unreachable.has(k);
         const hit = e.data?.kind === 'flow'
           ? impact.flows.has(e.data.flow.id)
-          : failed.has(e.source) && failed.has(e.target);
+          : e.data?.kind === 'cable'
+            ? down(e.source) && down(e.target)
+            : failed.has(e.source) && failed.has(e.target);
         edge = { ...edge, className: `${edge.className ?? ''} ${hit ? 'nsc-edge-impact' : 'nsc-edge-dim'}` };
       }
       return edge;
     });
-  }, [graphEdges, placedKeys, showRunsOn, selectedFlowId, impact, edgeStyles]);
+  }, [graphEdges, placedKeys, showRunsOn, showCables, selectedFlowId, impact, edgeStyles]);
 
   /** Nodes as rendered: impact highlight and per-type draggability are derived, not stored. */
   const displayNodes = useMemo(() => {
@@ -796,6 +800,9 @@ function Editor({ config }: { config: EditorConfig }) {
         { label: t('disabled'), color: [154, 160, 172], dash: [0.5, 1] },
         { label: t('runs on'), color: [102, 115, 130], dash: [1, 1] },
         { label: t('belongs to (application)'), color: [156, 39, 176], dash: [0.3, 1.2] },
+        ...(showCables && graphEdges.cables?.length
+          ? [{ label: t('cable'), color: [124, 138, 160] as [number, number, number] }]
+          : []),
       ];
       pdf.setFontSize(8);
       for (const item of legend) {
@@ -886,6 +893,8 @@ function Editor({ config }: { config: EditorConfig }) {
           onToggleMinimap={toggleMinimap}
           showRunsOn={showRunsOn}
           onToggleRunsOn={toggleRunsOn}
+          showCables={showCables}
+          onToggleCables={toggleCables}
           sidebar={sidebar}
           onToggleSidebar={toggleSidebar}
           onAddGroup={addGroup}
@@ -1009,11 +1018,14 @@ function Editor({ config }: { config: EditorConfig }) {
           <span><span className="nsc-legend-line disabled" /> {t('disabled')}</span>
           <span><span className="nsc-legend-line runs-on" /> {t('runs on')}</span>
           <span><span className="nsc-legend-line part-of" /> {t('belongs to')}</span>
+          {showCables && !!graphEdges.cables?.length && (
+            <span><span className="nsc-legend-line cable" /> {t('cable')}</span>
+          )}
           {impact && (
             <>
               <span><span className="nsc-legend-dot" style={{ background: '#d63939' }} /> {t('fails with it')}</span>
               <span><span className="nsc-legend-dot" style={{ background: '#f76707' }} /> {t('affected (depends on it)')}</span>
-              <span><span className="nsc-legend-dot" style={{ background: '#f59f00' }} /> {t('unreachable (behind a failed proxy)')}</span>
+              <span><span className="nsc-legend-dot" style={{ background: '#f59f00' }} /> {t('unreachable (behind a failed proxy or switch)')}</span>
             </>
           )}
           <span className="ms-auto">{t('Tip: click a node or connection to edit it')}</span>

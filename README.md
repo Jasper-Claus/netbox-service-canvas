@@ -211,6 +211,8 @@ several canvases. If an object is deleted in NetBox, it disappears from every ca
   autosave. Lines can be bent and coloured, applications get their own icon.
 - **Impact analysis**: shows what fails together with a host, what depends on it and what is no longer reachable
   behind a failed reverse proxy.
+- **Physical layer**: the cables documented in NetBox between devices, switches and routers, toggleable and part of
+  the impact analysis.
 - **Export** as PNG, SVG or a printable A4 PDF with title, date and legend.
 - **Integrated into NetBox**: lists, filters, CSV import, search, REST API, GraphQL and change log for all objects.
   Device, VM, service and application pages get a *Connections* tab and a *Show on canvas* button.

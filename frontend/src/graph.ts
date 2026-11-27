@@ -13,6 +13,7 @@ import type {
   ObjectDescriptor,
   PartOf,
   RunsOn,
+  Cable,
   SnapGroup,
   SnapNode,
   SnapNote,
@@ -61,7 +62,8 @@ export type CanvasNode = ObjectNode | GroupNode | NoteNode;
 export type FlowEdgeData =
   | { kind: 'flow'; flow: Flow; points: EdgeStyle['points']; color?: string }
   | { kind: 'runs_on'; runsOn: RunsOn }
-  | { kind: 'part_of'; partOf: PartOf };
+  | { kind: 'part_of'; partOf: PartOf }
+  | { kind: 'cable'; cable: Cable };
 export type CanvasEdge = Edge<FlowEdgeData>;
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -316,13 +318,44 @@ export function partOfEdge(p: PartOf): CanvasEdge {
   };
 }
 
+/** Label of a cable edge: the interfaces at both ends, "+n" for further links between the same devices. */
+export function cableLabel(cable: Cable): string {
+  if (!cable.interfaces.length) return '';
+  const [a, b] = cable.interfaces[0];
+  const more = cable.interfaces.length - 1;
+  return `${a} ↔ ${b}${more > 0 ? ` +${more}` : ''}`;
+}
+
+export function cableEdge(c: Cable): CanvasEdge {
+  return {
+    id: c.id,
+    source: c.source,
+    target: c.target,
+    type: 'straight',
+    className: `nsc-edge-cable${c.active ? '' : ' nsc-edge-cable-inactive'}`,
+    style: { strokeWidth: 3, ...(c.active ? {} : { strokeDasharray: '8 4' }) },
+    label: cableLabel(c),
+    labelBgPadding: [4, 2] as [number, number],
+    labelBgBorderRadius: 3,
+    selectable: false,
+    focusable: false,
+    deletable: false,
+    data: { kind: 'cable', cable: c },
+  };
+}
+
 export function buildEdges(
   edges: GraphEdges,
   present: Set<string>,
-  options: { showRunsOn: boolean } = { showRunsOn: true },
+  options: { showRunsOn: boolean; showCables?: boolean } = { showRunsOn: true },
   styles: EdgeStyles = {},
 ): CanvasEdge[] {
   const result: CanvasEdge[] = [];
+  if (options.showCables ?? true) {
+    for (const c of edges.cables ?? []) {
+      if (present.has(c.source) && present.has(c.target)) result.push(cableEdge(c));
+    }
+  }
   if (options.showRunsOn) {
     for (const r of edges.runs_on) {
       if (present.has(r.source) && present.has(r.target)) result.push(runsOnEdge(r));
@@ -569,6 +602,8 @@ export interface Impact {
  *   3. Proxies: for a connection of kind "proxy" the target is reached through the source. If the source (or a hop)
  *      fails, the target and the applications it belongs to become unreachable. Targets behind an unreachable proxy
  *      are unreachable as well.
+ *   4. Cables: a device whose cables (on the canvas) all lead to failed or unreachable devices is unreachable, and so
+ *      is everything running on it. Example: a switch fails, the servers only cabled to it become unreachable.
  */
 export function computeImpact(root: string, edges: GraphEdges): Impact {
   const direct = new Set<string>([root]);
@@ -590,6 +625,13 @@ export function computeImpact(root: string, edges: GraphEdges): Impact {
   }
 
   const failed = new Set(direct);
+  const cablePeers = new Map<string, Set<string>>();
+  for (const c of edges.cables ?? []) {
+    if (!cablePeers.has(c.source)) cablePeers.set(c.source, new Set());
+    if (!cablePeers.has(c.target)) cablePeers.set(c.target, new Set());
+    cablePeers.get(c.source)!.add(c.target);
+    cablePeers.get(c.target)!.add(c.source);
+  }
   const indirect = new Set<string>();
   const unreachable = new Set<string>();
   const flows = new Set<number>();
@@ -626,6 +668,13 @@ export function computeImpact(root: string, edges: GraphEdges): Impact {
     }
     for (const p of edges.part_of ?? []) {
       if (unreachable.has(p.source) && markUnreachable(p.target)) changed = true;
+    }
+    for (const [device, peers] of cablePeers) {
+      if (direct.has(device)) continue;
+      if ([...peers].every((p) => direct.has(p) || unreachable.has(p)) && markUnreachable(device)) changed = true;
+    }
+    for (const r of edges.runs_on) {
+      if (unreachable.has(r.target) && markUnreachable(r.source)) changed = true;
     }
   }
   direct.delete(root);

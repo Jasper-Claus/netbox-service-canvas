@@ -3,13 +3,14 @@ from django.urls import reverse
 from rest_framework import status
 
 from core.models import ObjectChange
+from dcim.models import Cable, Interface
 from ipam.models import VRF
 from users.models import ObjectPermission
 from utilities.testing import APITestCase, APIViewTestCases
 from virtualization.models import VirtualMachine
 
 from ..models import Application, Canvas, CanvasGroup, CanvasNode, CanvasNote, ConnectionHop, ServiceConnection
-from .utils import create_base_objects, create_connection
+from .utils import create_base_objects, create_connection, create_test_device
 
 NAMESPACE = 'plugins-api:netbox_service_canvas'
 
@@ -420,6 +421,66 @@ class CanvasGraphAPITest(APITestCase):
             f"dcim.device:{self.o['device2'].pk}",       # parent of grafana
             f"ipam.service:{self.o['prometheus'].pk}",   # connected to grafana
         })
+
+
+class CanvasCablesAPITest(APITestCase):
+    """
+    Physical layer: cables between devices on the canvas, taken from NetBox's cable paths.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.o = create_base_objects()
+        cls.switch = create_test_device('Switch')
+        cls.canvas = Canvas.objects.create(name='Cables')
+        for obj in (cls.o['device1'], cls.switch):
+            CanvasNode.objects.create(canvas=cls.canvas, object=obj, x=0, y=0)
+
+        def iface(device, name):
+            return Interface.objects.create(device=device, name=name, type='1000base-t')
+
+        # device1 has two links to the switch (merged into one edge), device2 one (not on the canvas)
+        for local, remote in (('eth0', 'port1'), ('eth1', 'port2')):
+            Cable(a_terminations=[iface(cls.o['device1'], local)], b_terminations=[iface(cls.switch, remote)]).save()
+        Cable(a_terminations=[iface(cls.o['device2'], 'eth0')], b_terminations=[iface(cls.switch, 'port3')]).save()
+
+    def url(self, action='graph'):
+        return reverse(f'{NAMESPACE}-api:canvas-{action}', kwargs={'pk': self.canvas.pk})
+
+    def grant_view(self):
+        self.add_permissions(
+            'netbox_service_canvas.view_canvas', 'netbox_service_canvas.view_serviceconnection',
+            'dcim.view_device', 'dcim.view_interface', 'ipam.view_service',
+            'virtualization.view_virtualmachine',
+        )
+
+    def test_graph_cables(self):
+        self.grant_view()
+        response = self.client.get(self.url(), **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        device1 = f"dcim.device:{self.o['device1'].pk}"
+        switch = f'dcim.device:{self.switch.pk}'
+        cables = response.data['edges']['cables']
+        self.assertEqual(len(cables), 1)
+        self.assertEqual({cables[0]['source'], cables[0]['target']}, {device1, switch})
+        names = {tuple(sorted(pair)) for pair in cables[0]['interfaces']}
+        self.assertEqual(names, {('eth0', 'port1'), ('eth1', 'port2')})
+        self.assertEqual(len(cables[0]['cable_ids']), 2)
+        self.assertFalse(cables[0]['patched'])
+
+    def test_cables_hidden_without_interface_permission(self):
+        self.add_permissions(
+            'netbox_service_canvas.view_canvas', 'netbox_service_canvas.view_serviceconnection', 'dcim.view_device',
+        )
+        response = self.client.get(self.url(), **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertEqual(response.data['edges']['cables'], [])
+
+    def test_missing_adds_cabled_devices(self):
+        self.grant_view()
+        response = self.client.get(self.url('missing'), **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertIn(f"dcim.device:{self.o['device2'].pk}", response.data['objects'])
 
 
 class ReorderHopsAPITest(APITestCase):

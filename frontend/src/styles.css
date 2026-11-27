@@ -1099,3 +1099,15 @@
   color: var(--nsc-muted, #6c757d);
   cursor: default;
 }
+
+/* Physical layer: cables between devices */
+.nsc-root .nsc-edge-cable .react-flow__edge-path {
+  stroke: #7c8aa0;
+}
+.nsc-root .nsc-edge-cable .react-flow__edge-text {
+  font-size: 10px;
+  fill: var(--nsc-muted);
+}
+.nsc-root .nsc-legend-line.cable {
+  border-top: 3px solid #7c8aa0;
+}

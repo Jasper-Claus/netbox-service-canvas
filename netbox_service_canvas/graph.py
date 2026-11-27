@@ -1,7 +1,7 @@
 """
 Read-side helpers for the canvas editor: turn NetBox objects into compact node descriptors and derive the edges
 between them. Edges are never stored per canvas. They come from Service.parent ("runs on"), Application.services
-("part of") and ServiceConnection.
+("part of"), ServiceConnection and the cables documented in NetBox (physical layer).
 
 Object keys have the form "<app_label>.<model>:<pk>", e.g. "ipam.service:12".
 """
@@ -10,7 +10,7 @@ from collections import defaultdict
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count, Q
 
-from dcim.models import Device
+from dcim.models import Device, Interface
 from ipam.models import Service
 from virtualization.models import VirtualMachine
 
@@ -179,12 +179,87 @@ def connection_data(conn):
     }
 
 
+def _far_interfaces(path):
+    """Interface pks at the far end of a cable path (path nodes have the form "<content type id>:<object id>")."""
+    iface_ct = ContentType.objects.get_for_model(Interface).pk
+    result = []
+    for node in (path or [[]])[-1]:
+        ct_id, _, obj_id = str(node).partition(':')
+        if ct_id.isdigit() and obj_id.isdigit() and int(ct_id) == iface_ct:
+            result.append(int(obj_id))
+    return result
+
+
+def _cable_ids(path):
+    """Cable pks along a cable path (every second step of the path holds the cables)."""
+    cable_ct = ContentType.objects.get_by_natural_key('dcim', 'cable').pk
+    result = []
+    for step in (path or [])[1::2]:
+        for node in step:
+            ct_id, _, obj_id = str(node).partition(':')
+            if ct_id.isdigit() and obj_id.isdigit() and int(ct_id) == cable_ct:
+                result.append(int(obj_id))
+    return result
+
+
+def cable_links(user, device_pks):
+    """
+    Physical links of the given devices, taken from NetBox's cable paths (so a link through patch panels counts as one
+    link between the two devices at its ends). Links between the same two devices are merged into one entry.
+    Only complete paths from interface to interface are considered.
+    """
+    if not device_pks:
+        return []
+    rows = list(Interface.objects.restrict(user, 'view').filter(
+        device_id__in=device_pks, _path__isnull=False, _path__is_complete=True,
+    ).values_list('pk', 'name', 'device_id', '_path__path', '_path__is_active'))
+    far_pks = {pk for row in rows for pk in _far_interfaces(row[3])}
+    far = {
+        pk: (name, device_id)
+        for pk, name, device_id in Interface.objects.restrict(user, 'view').filter(pk__in=far_pks).values_list(
+            'pk', 'name', 'device_id'
+        )
+    }
+
+    links = {}
+    seen = set()
+    for pk, name, device_id, path, active in rows:
+        for far_pk in _far_interfaces(path):
+            if far_pk not in far or frozenset((pk, far_pk)) in seen:
+                continue
+            seen.add(frozenset((pk, far_pk)))
+            far_name, far_device = far[far_pk]
+            if far_device == device_id:
+                continue
+            # Same orientation for both directions: lower device pk is the source
+            if device_id < far_device:
+                a, b = (device_id, name), (far_device, far_name)
+            else:
+                a, b = (far_device, far_name), (device_id, name)
+            link = links.setdefault((a[0], b[0]), {
+                'id': f'cable:{a[0]}-{b[0]}',
+                'source': make_key('dcim.device', a[0]),
+                'target': make_key('dcim.device', b[0]),
+                'interfaces': [],
+                'cable_ids': [],
+                'active': True,
+            })
+            link['interfaces'].append([a[1], b[1]])
+            link['cable_ids'].extend(c for c in _cable_ids(path) if c not in link['cable_ids'])
+            link['active'] = link['active'] and bool(active)
+    for link in links.values():
+        link['interfaces'].sort()
+        link['patched'] = len(link['cable_ids']) > len(link['interfaces'])
+    return sorted(links.values(), key=lambda link: link['id'])
+
+
 def build_edges(user, node_keys, descriptors):
     """
     Derive edges between the given nodes:
       * runs_on: service -> its parent device/VM, and VM -> the device it is pinned to (if both are present)
       * part_of: service -> application it belongs to (if both are present)
       * flow:    every ServiceConnection whose source and target are both present
+      * cables:  physical links between devices (NetBox cables, also through patch panels)
     """
     present = set(node_keys)
     runs_on = []
@@ -211,7 +286,12 @@ def build_edges(user, node_keys, descriptors):
             hop_count=Count('hops'),
         )
         flows = [connection_data(conn) for conn in qs]
-    return {'runs_on': runs_on, 'part_of': part_of, 'flows': flows}
+    device_pks = keys_by_label.get('dcim.device', set())
+    cables = [
+        link for link in cable_links(user, device_pks)
+        if link['source'] in present and link['target'] in present
+    ]
+    return {'runs_on': runs_on, 'part_of': part_of, 'flows': flows, 'cables': cables}
 
 
 def missing_keys(user, node_keys):
@@ -222,6 +302,7 @@ def missing_keys(user, node_keys):
       * parents of services on the canvas
       * services of applications on the canvas, and applications of services on the canvas
       * the other endpoint of every connection touching an object on the canvas
+      * devices cabled to devices on the canvas (switches, routers, …)
     """
     present = set(node_keys)
     keys_by_label = parse_keys(node_keys)
@@ -242,6 +323,8 @@ def missing_keys(user, node_keys):
             device__in=device_pks
         ).values_list('pk', flat=True):
             found.add(make_key('virtualization.virtualmachine', pk))
+        for link in cable_links(user, device_pks):
+            found.update((link['source'], link['target']))
     vm_pks = keys_by_label.get('virtualization.virtualmachine')
     if vm_pks:
         for device_id in VirtualMachine.objects.filter(
