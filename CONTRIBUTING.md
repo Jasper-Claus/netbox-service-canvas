@@ -77,9 +77,11 @@ ruff check netbox_service_canvas --select E,F
 CI runs the frontend tests and build, the lint and the Django tests against NetBox v4.5.7 and the newest 4.5, 4.6
 and 4.7 release. All of them must pass before a pull request is merged.
 
-NetBox 4.7 compares list views and API lists against stored query counts in
-`netbox_service_canvas/tests/query_counts.json`. If a change alters them on purpose, re-record the file with
-`UPDATE_QUERY_COUNTS=1 python manage.py test netbox_service_canvas` (serially, no `--parallel`) and commit it.
+NetBox 4.6 and newer compare list views and API lists against stored query counts in
+`netbox_service_canvas/tests/query_counts.json`. The file is recorded against NetBox 4.7 and only checked there
+(the counts differ by one query on 4.6). If a change alters them on purpose, re-record it on 4.7 with
+`UPDATE_QUERY_COUNTS=1 python manage.py test netbox_service_canvas` (serially, no `--parallel`) and commit it. On
+other versions, run the tests with `SKIP_QUERY_COUNTS=1`.
 
 Test data for trying things out by hand: `dev/test_scenario.py` creates the canvas "Testlabor" (reverse proxy chain,
 hops, switch with cables, application icons):
