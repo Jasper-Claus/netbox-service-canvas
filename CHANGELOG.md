@@ -16,7 +16,8 @@ All notable changes to this project are documented here. The format follows
 - **Physical layer**: cables documented in NetBox are shown between devices on the canvas (interface names as label,
   several links between the same devices merged, paths through patch panels count as one link). Toggle it in the
   toolbar. *Add missing* also adds cabled devices such as switches. In the impact analysis, a device whose cables all
-  lead to failed devices becomes unreachable, together with everything running on it.
+  lead to failed devices becomes unreachable, together with everything running on it. The panel of a device lists its
+  cables (own interface → other device and port).
 - **Search on the canvas**: a small search field in the toolbar finds objects by name, host, IP or port and jumps
   to them.
 - **Application icons**: choose one of 24 icons (database, web, DNS, backup, media, …) for an application. It is shown

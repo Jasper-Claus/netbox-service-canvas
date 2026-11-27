@@ -47,7 +47,8 @@ status of their host, because NetBox services have no status of their own.
 
 Click a node to open the **node panel**:
 
-- details and the node's connections on this canvas,
+- details and the node's connections on this canvas; for devices also their **cables** (own interface → other
+  device and port; click to jump to the other device, the icon opens the cable in NetBox),
 - **Quick edit** for services and applications (applications: also the **icon**),
 - **Open in NetBox** and **Edit all fields** (the NetBox form; afterwards you return to the editor),
 - **Impact analysis** (see [[Impact Analysis]]),

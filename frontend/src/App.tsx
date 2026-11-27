@@ -997,6 +997,7 @@ function Editor({ config }: { config: EditorConfig }) {
               key={selectedNodeDesc.key}
               desc={selectedNodeDesc}
               flows={graphEdges.flows}
+              cables={graphEdges.cables ?? []}
               describe={descriptorFor}
               layoutEditable={layoutEditable}
               impactActive={impactRoot === selectedNodeDesc.key}
@@ -1007,6 +1008,7 @@ function Editor({ config }: { config: EditorConfig }) {
                 setSelectedFlowId(id);
                 setSelectedNodeKey(null);
               }}
+              onSelectObject={focusObject}
               onToggleImpact={() => setImpactRoot((r) => (r === selectedNodeDesc.key ? null : selectedNodeDesc.key))}
               onNewService={() => openNewService(selectedNodeDesc.key)}
             />

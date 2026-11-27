@@ -3,7 +3,7 @@ import { ApiError } from '../api';
 import { APPLICATION_STATUSES, SERVICE_TRANSPORTS } from '../choices';
 import { useEditor } from '../context';
 import { flowLabel } from '../graph';
-import type { Flow, ObjectDescriptor } from '../types';
+import type { Cable, Flow, ObjectDescriptor } from '../types';
 import { parsePorts } from '../util';
 import { MultiObjectPicker } from './ObjectPicker';
 import { NODE_ICONS, NODE_TYPE_LABELS, statusColorVar } from './ObjectNode';
@@ -13,6 +13,8 @@ import { t } from '../i18n';
 interface Props {
   desc: ObjectDescriptor;
   flows: Flow[];
+  /** Cables of the physical layer (only shown for devices). */
+  cables: Cable[];
   describe: (key: string) => ObjectDescriptor | null;
   layoutEditable: boolean;
   impactActive: boolean;
@@ -21,6 +23,8 @@ interface Props {
   onChanged: () => void;
   onRemove: () => void;
   onSelectFlow: (id: number) => void;
+  /** Jump to another object on the canvas. */
+  onSelectObject: (key: string) => void;
   onToggleImpact: () => void;
   onNewService: () => void;
 }
@@ -207,10 +211,10 @@ function ApplicationEditor({ desc, onChanged }: { desc: ObjectDescriptor; onChan
 }
 
 export function NodePanel({
-  desc, flows, describe, layoutEditable, impactActive, onClose, onChanged, onRemove, onSelectFlow, onToggleImpact,
-  onNewService,
+  desc, flows, cables, describe, layoutEditable, impactActive, onClose, onChanged, onRemove, onSelectFlow,
+  onSelectObject, onToggleImpact, onNewService,
 }: Props) {
-  const { perms, readOnly } = useEditor();
+  const { perms, readOnly, netboxBase } = useEditor();
   const [tab, setTab] = useState<'info' | 'edit'>('info');
 
   const canEditObject = !readOnly && (
@@ -226,6 +230,21 @@ export function NodePanel({
       const other = describe(outgoing ? f.target : f.source);
       return { flow: f, outgoing, otherName: other?.name ?? (outgoing ? f.target : f.source) };
     }), [flows, desc.key, describe]);
+
+  // Cables of this device, own interface first
+  const links = useMemo(() => cables
+    .filter((c) => c.source === desc.key || c.target === desc.key)
+    .map((c) => {
+      const mine = c.source === desc.key;
+      const otherKey = mine ? c.target : c.source;
+      return {
+        cable: c,
+        otherKey,
+        otherName: describe(otherKey)?.name ?? otherKey,
+        pairs: c.interfaces.map(([a, b]) => (mine ? [a, b] : [b, a])),
+      };
+    })
+    .sort((a, b) => a.otherName.localeCompare(b.otherName)), [cables, desc.key, describe]);
 
   return (
     <aside className="nsc-panel" aria-label={t('Details of {name}', { name: desc.name })}>
@@ -322,6 +341,47 @@ export function NodePanel({
                 </button>
               )}
             </div>
+
+            {desc.type === 'device' && links.length > 0 && (
+              <>
+                <h6 className="nsc-panel-subtitle">{t('Cables on this canvas')}</h6>
+                <div className="list-group list-group-flush mb-2">
+                  {links.map(({ cable, otherKey, otherName, pairs }) => (
+                    <div key={cable.id} className="list-group-item nsc-conn-item">
+                      <i className="mdi mdi-ethernet-cable" />
+                      <button
+                        type="button"
+                        className="btn btn-link p-0 text-start flex-grow-1 min-w-0 text-reset text-decoration-none"
+                        onClick={() => onSelectObject(otherKey)}
+                        title={t('Show {name} on the canvas', { name: otherName })}
+                      >
+                        <span className="d-block text-truncate">{otherName}</span>
+                        {pairs.map(([own, other]) => (
+                          <span key={`${own}-${other}`} className="d-block small text-muted">{own} → {other}</span>
+                        ))}
+                        {(!cable.active || cable.patched) && (
+                          <span className="d-block small text-muted">
+                            {[!cable.active && t('not connected yet'), cable.patched && t('via patch panel')]
+                              .filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                      </button>
+                      {cable.cable_ids.length > 0 && (
+                        <a
+                          href={`${netboxBase}dcim/cables/${cable.cable_ids[0]}/`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-muted"
+                          title={t('Open cable in NetBox')}
+                        >
+                          <i className="mdi mdi-open-in-new" />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             <h6 className="nsc-panel-subtitle">{t('Connections on this canvas')}</h6>
             {connections.length === 0 ? (
