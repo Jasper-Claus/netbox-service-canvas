@@ -177,14 +177,16 @@ for col, objects in enumerate(columns):
         )
 
 if not canvas.notes.exists():
-    CanvasNote.objects.create(canvas=canvas, x=0, y=720, width=320, height=230, color='ffe066', text=(
+    CanvasNote.objects.create(canvas=canvas, x=0, y=900, width=320, height=260, color='ffe066', text=(
         'Testideen:\n'
         '1. traefik anklicken > Impact-Analyse: alles dahinter wird gelb (nicht erreichbar)\n'
         '2. authelia ausfallen lassen: grafana wird gelb (Proxy-Kette)\n'
         '3. opnsense ausfallen lassen: Hops brechen, immich/paperless werden orange\n'
         '4. postgres ausfallen lassen: Apps werden orange\n'
         '5. switch ausfallen lassen: pve1 und truenas werden gelb, pve2 nicht (2. Kabel)\n'
-        '6. Linie anklicken (Bearbeiten an): +-Punkte ziehen, Farbe wählen'
+        '6. Linie anklicken (Bearbeiten an): +-Punkte ziehen, Farbe wählen
+'
+        '7. Suche oben: z. B. "5432" oder "db-vm"'
     ))
 
 if not canvas.groups.exists():
